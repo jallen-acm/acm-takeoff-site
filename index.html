@@ -1,0 +1,1417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ACM Takeoff Helper — American Cedar &amp; Millwork</title>
+<!-- v: page-range import -->
+<style>
+  :root {
+    /* American Cedar & Millwork brand: navy + crimson from the logo */
+    --wood: #2b3990;        /* primary navy */
+    --wood-dark: #1e2a6d;   /* deep navy for headings */
+    --wood-light: #eef0f9;  /* pale navy tint for cards/pills */
+    --accent: #be1e2d;      /* ACM crimson */
+    --ink: #22263c;
+    --muted: #6d7285;
+    --line: #dfe3f0;
+    --bg: #f8f9fc;
+    --card: #ffffff;
+    --green: #2e7d43;
+    --red: #be1e2d;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg); color: var(--ink); line-height: 1.45;
+  }
+  header {
+    background: var(--wood); color: #fff; padding: 14px 24px;
+    border-bottom: 4px solid var(--accent);
+    display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  }
+  header h1 { font-family: Georgia, "Times New Roman", serif; font-size: 21px; font-weight: 700; letter-spacing: .3px; cursor: pointer; }
+  header .tag { font-size: 12px; opacity: .85; }
+  header .spacer { flex: 1; }
+  #navCrumb { font-size: 13px; opacity: .9; }
+  #navCrumb a { color: #fff; text-decoration: underline; cursor: pointer; }
+  main { max-width: 1100px; margin: 0 auto; padding: 20px 24px 80px; }
+
+  .view { display: none; }
+  .view.active { display: block; }
+  body:not([data-view="home"]) #summarySection { display: none; }
+
+  /* home tool cards */
+  .tool-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 16px; margin-bottom: 22px; }
+  .tool-card {
+    background: var(--wood); color: #fff; border-radius: 12px; padding: 20px 18px 16px;
+    cursor: pointer; border: 1px solid var(--wood-dark);
+    display: flex; flex-direction: column; gap: 6px; min-height: 128px;
+    transition: transform .08s, box-shadow .08s;
+  }
+  .tool-card:hover { transform: translateY(-2px); box-shadow: 0 4px 14px rgba(43,57,144,.25); }
+  .tool-card h3 { font-family: Georgia, "Times New Roman", serif; font-size: 20px; font-weight: 700; }
+  .tool-card .desc { font-size: 12px; opacity: .8; flex: 1; }
+  .tool-card .count { font-size: 13px; font-weight: 600; background: rgba(255,255,255,.15); border-radius: 20px; padding: 2px 10px; align-self: flex-start; }
+  .tool-card.alt { background: #fff; color: var(--wood-dark); border: 1px solid var(--line); }
+  .tool-card.alt .count { background: var(--wood-light); color: var(--wood-dark); }
+
+  section { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 18px 20px; margin-bottom: 22px; }
+  section h2 { font-family: Georgia, "Times New Roman", serif; font-size: 17px; margin-bottom: 12px; color: var(--wood-dark); display: flex; align-items: center; gap: 10px; }
+  section h2 .hint { font-size: 12px; font-weight: 400; color: var(--muted); }
+  /* collapsible sections: the section's own heading toggles it */
+  section > h2 { cursor: pointer; user-select: none; }
+  section > h2::after { content: "▾"; margin-left: auto; color: var(--muted); font-size: 13px; }
+  section.collapsed > h2 { margin-bottom: 0; }
+  section.collapsed > h2::after { content: "▸"; }
+  section.collapsed > *:not(h2) { display: none; }
+
+  label { font-size: 12px; color: var(--muted); display: block; margin-bottom: 2px; }
+  input, select {
+    font: inherit; padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px;
+    background: #fff; color: var(--ink); width: 100%;
+  }
+  input:focus, select:focus { outline: 2px solid var(--wood); outline-offset: -1px; }
+  input[type="number"] { text-align: right; }
+  input[type="checkbox"] { width: auto; }
+  .grid { display: grid; gap: 12px; }
+  .proj-grid { grid-template-columns: 2fr 2fr 1fr; }
+  button {
+    font: inherit; font-weight: 600; padding: 7px 14px; border-radius: 7px; cursor: pointer;
+    border: 1px solid var(--wood); background: var(--wood); color: #fff;
+  }
+  button.secondary { background: #fff; color: var(--wood-dark); }
+  button.ghost { background: transparent; border-color: transparent; color: var(--muted); padding: 4px 8px; }
+  button.ghost:hover { color: var(--red); }
+  button:hover { filter: brightness(1.05); }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .4px; color: var(--muted); padding: 6px 8px; border-bottom: 2px solid var(--line); white-space: nowrap; }
+  td { padding: 5px 8px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+  td input, td select { min-width: 60px; }
+  .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .room-card { border: 1px solid var(--line); border-radius: 9px; padding: 14px; margin-bottom: 14px; background: var(--wood-light); }
+  .room-head { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 1fr auto; gap: 10px; align-items: end; margin-bottom: 10px; }
+  .room-openings { display: grid; grid-template-columns: repeat(6, 1fr) auto; gap: 10px; align-items: end; margin-bottom: 10px; }
+  .trim-rows { background: #fff; border: 1px solid var(--line); border-radius: 7px; overflow: hidden; }
+  .trim-rows table td { padding: 4px 8px; }
+  .lf { font-weight: 600; color: var(--wood-dark); }
+  .toolbar { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
+  .summary-total td { font-weight: 700; border-top: 2px solid var(--ink); border-bottom: none; }
+  .pill { display: inline-block; background: var(--wood-light); color: var(--wood-dark); border-radius: 20px; padding: 2px 10px; font-size: 12px; font-weight: 600; }
+  .empty { color: var(--muted); font-size: 13px; padding: 10px 0; }
+  .flags { background: #fdf1f2; border: 1px solid #edc4c8; border-left: 4px solid var(--accent); border-radius: 7px; padding: 10px 14px; margin-top: 10px; font-size: 13px; }
+  .flags ul { margin: 4px 0 0 18px; }
+  .flags li { margin-bottom: 3px; }
+  .footer-note { color: var(--muted); font-size: 12px; margin-top: 6px; }
+  #printHeader { display: none; }
+  .overflow { overflow-x: auto; }
+  @media (max-width: 760px) {
+    .proj-grid, .room-head, .room-openings { grid-template-columns: 1fr 1fr; }
+  }
+  @media print {
+    header, .view, .toolbar, button, .footer-note { display: none !important; }
+    body:not([data-view="home"]) #summarySection { display: block; }
+    #summarySection, #summarySection.collapsed > * { display: block !important; }
+    section > h2::after { content: none !important; }
+    body { background: #fff; }
+    main { padding: 0; max-width: none; }
+    section { border: none; padding: 0; }
+    #printHeader { display: block !important; margin-bottom: 16px; border-bottom: 3px solid var(--accent); padding-bottom: 10px; }
+    #printHeader .company { font-family: Georgia, "Times New Roman", serif; color: var(--wood); font-size: 15px; font-weight: 700; letter-spacing: .5px; }
+    #printHeader h1 { font-family: Georgia, "Times New Roman", serif; font-size: 22px; color: var(--wood-dark); }
+    #printHeader .meta { color: #444; font-size: 13px; margin-top: 4px; }
+  }
+</style>
+</head>
+<body data-view="home">
+
+<header>
+  <h1 onclick="location.hash=''">American Cedar &amp; Millwork</h1>
+  <span class="tag">Takeoff Helper</span>
+  <span id="navCrumb"></span>
+  <span class="spacer"></span>
+  <button class="secondary" onclick="exportCSV()">Export CSV</button>
+  <button class="secondary" onclick="window.print()">Print Order Sheet</button>
+  <button class="secondary" onclick="newProject()">New Project</button>
+</header>
+
+<main>
+
+<!-- ============ HOME ============ -->
+<div class="view" id="view-home">
+
+<section id="projectSection">
+  <h2>Project</h2>
+  <div class="grid proj-grid">
+    <div><label>Job name</label><input id="p_name" placeholder="Smith Residence" oninput="saveProject()"></div>
+    <div><label>Customer / contractor</label><input id="p_customer" placeholder="ABC Builders" oninput="saveProject()"></div>
+    <div><label>Date</label><input id="p_date" type="date" oninput="saveProject()"></div>
+  </div>
+</section>
+
+<div class="tool-grid" id="toolGrid">
+  <div class="tool-card" onclick="location.hash='windows'">
+    <h3>Windows</h3>
+    <div class="desc">Import a window schedule, edit mark-by-mark, get a grouped order list</div>
+    <div class="count" id="count-windows">0 windows</div>
+  </div>
+  <div class="tool-card" onclick="location.hash='doors'">
+    <h3>Doors</h3>
+    <div class="desc">Door schedules &amp; hardware, counted by the each</div>
+    <div class="count" id="count-doors">0 items</div>
+  </div>
+  <div class="tool-card" onclick="location.hash='cabinetry'">
+    <h3>Cabinetry</h3>
+    <div class="desc">Cabinets, casework &amp; countertops from plans or schedules</div>
+    <div class="count" id="count-cabinetry">0 items</div>
+  </div>
+  <div class="tool-card" onclick="location.hash='siding'">
+    <h3>Siding</h3>
+    <div class="desc">Siding &amp; exterior material takeoffs</div>
+    <div class="count" id="count-siding">0 items</div>
+  </div>
+  <div class="tool-card alt" onclick="location.hash='trim'">
+    <h3>Trim &amp; Millwork</h3>
+    <div class="desc">Room-by-room base, crown &amp; casing footages</div>
+    <div class="count" id="count-trim">0 rooms</div>
+  </div>
+</div>
+
+</div>
+
+<!-- ============ WINDOWS ============ -->
+<div class="view" id="view-windows">
+  <div id="import-slot-windows"></div>
+  <section id="windowsSection">
+    <h2>Windows <span class="hint">from an imported window schedule or entered by hand — grouped into an order list below</span></h2>
+    <div class="overflow">
+    <table>
+      <thead><tr>
+        <th style="width:70px">Mark</th><th style="width:110px">Operation</th><th style="width:90px">Width</th><th style="width:90px">Height</th>
+        <th style="width:90px">Head Ht</th><th style="width:90px">Sill Ht</th><th style="width:130px">Level</th><th>Comments</th><th></th>
+      </tr></thead>
+      <tbody id="windowRows"></tbody>
+    </table>
+    </div>
+    <div class="toolbar"><button class="secondary" onclick="addWindow()">+ Add Window</button></div>
+  </section>
+  <section id="windowGroupsSection">
+    <h2>Window Order List <span class="hint">identical units grouped for entry into Marvin OMS / United's quoting tool — tempered / egress stay separate lines</span></h2>
+    <div class="overflow" id="windowGroupsBody"></div>
+    <div class="toolbar"><button class="secondary" id="copyListBtn" onclick="copyWindowList()">Copy list for quoting entry</button></div>
+  </section>
+</div>
+
+<!-- ============ DOORS ============ -->
+<div class="view" id="view-doors">
+  <div id="import-slot-doors"></div>
+  <section id="doorsSection">
+    <h2>Doors &amp; Hardware <span class="hint">doors, jambs, hinges, locksets — anything counted by the each</span></h2>
+    <div class="overflow">
+    <table>
+      <thead><tr><th>Item</th><th style="width:90px">Qty</th><th style="width:110px">Unit</th><th>Note</th><th></th></tr></thead>
+      <tbody id="rows-doors"></tbody>
+    </table>
+    </div>
+    <div class="toolbar"><button class="secondary" onclick="addBucketItem('doors')">+ Add Item</button></div>
+  </section>
+</div>
+
+<!-- ============ CABINETRY ============ -->
+<div class="view" id="view-cabinetry">
+  <section id="cabBrandSection">
+    <h2>Brand &amp; Price Book <span class="hint">price books are saved on this computer and reused on every job — “New Project” never clears them</span></h2>
+    <div class="grid" style="grid-template-columns: 1.2fr auto 1fr 1.4fr; align-items: end;">
+      <div><label>Brand for this job</label><select id="cabBrandSel" onchange="setCabBrand(this.value)"></select></div>
+      <div><button class="secondary" onclick="addCabBrand()">+ Add Brand</button></div>
+      <div><label>Price group / finish column (if the book has columns)</label><input id="cabGroup" placeholder="e.g. GROUP B" onchange="setCabGroup(this.value)"></div>
+      <div class="footer-note" style="margin:0" id="cabBookInfo"></div>
+    </div>
+    <div class="grid" style="grid-template-columns: 2fr auto; align-items: end; margin-top: 12px;">
+      <div><label>Import price book pages — PDF or photos of the pricing sheet</label><input id="priceBookFile" type="file" accept=".pdf,image/png,image/jpeg,image/webp"></div>
+      <div><button id="priceBookBtn" onclick="importPriceBook()">Import Prices</button></div>
+    </div>
+    <p class="footer-note" id="priceBookStatus">Import a few pages at a time — crops and photos of the price tables read best. Extracted SKUs and prices are added to the selected brand's book; re-importing a page updates its prices.</p>
+  </section>
+  <div id="import-slot-cabinetry"></div>
+  <section id="cabinetrySection">
+    <h2>Cabinetry &amp; Casework <span class="hint">cabinets by SKU, countertops, panels, fillers — unit prices fill in from the brand's price book</span></h2>
+    <div class="overflow">
+    <table>
+      <thead><tr><th style="width:110px">SKU</th><th>Description</th><th style="width:80px">Qty</th><th style="width:100px">Unit $</th><th style="width:100px">Ext $</th><th>Note</th><th></th></tr></thead>
+      <tbody id="rows-cabinetry"></tbody>
+    </table>
+    </div>
+    <div class="toolbar">
+      <button class="secondary" onclick="addBucketItem('cabinetry')">+ Add Item</button>
+      <span class="pill" id="cabTotal" style="margin-left:auto"></span>
+    </div>
+  </section>
+</div>
+
+<!-- ============ SIDING ============ -->
+<div class="view" id="view-siding">
+  <div id="import-slot-siding"></div>
+  <section id="sidingSection">
+    <h2>Siding &amp; Exterior <span class="hint">siding (SF or squares), trim boards, soffit, house wrap</span></h2>
+    <div class="overflow">
+    <table>
+      <thead><tr><th>Item</th><th style="width:90px">Qty</th><th style="width:110px">Unit</th><th>Note</th><th></th></tr></thead>
+      <tbody id="rows-siding"></tbody>
+    </table>
+    </div>
+    <div class="toolbar"><button class="secondary" onclick="addBucketItem('siding')">+ Add Item</button></div>
+  </section>
+</div>
+
+<!-- ============ TRIM & MILLWORK ============ -->
+<div class="view" id="view-trim">
+  <section id="profilesSection">
+    <h2>Trim Profiles <span class="hint">the mouldings you stock or sell — set stock length &amp; waste per profile</span></h2>
+    <div class="overflow">
+    <table>
+      <thead><tr>
+        <th>Profile / description</th><th>Category</th><th>Stock length (ft)</th><th>Waste %</th><th></th>
+      </tr></thead>
+      <tbody id="profileRows"></tbody>
+    </table>
+    </div>
+    <div class="toolbar"><button class="secondary" onclick="addProfile()">+ Add Profile</button></div>
+  </section>
+
+  <section id="roomsSection">
+    <h2>Rooms <span class="hint">enter dimensions in feet — footages calculate automatically</span></h2>
+    <div id="roomList"></div>
+    <div class="toolbar"><button onclick="addRoom()">+ Add Room</button></div>
+    <p class="footer-note">
+      Base &amp; chair rail = perimeter minus door openings. Crown = full perimeter. Shoe follows base.
+      Door casing = legs + head per cased side. Window casing = picture-frame perimeter.
+    </p>
+  </section>
+</div>
+
+<!-- ============ ORDER SUMMARY (home + print) ============ -->
+<section id="summarySection">
+  <div id="printHeader">
+    <div class="company">AMERICAN CEDAR &amp; MILLWORK</div>
+    <h1>Order Sheet</h1>
+    <div class="meta" id="printMeta"></div>
+  </div>
+  <h2>Order Summary</h2>
+  <div class="overflow" id="summaryBody"></div>
+  <p class="footer-note">Net LF is measured footage. Order LF adds the waste factor. Pieces = Order LF ÷ stock length, rounded up.</p>
+</section>
+
+<!-- shared AI import (moved into whichever tool page is open) -->
+<template id="importTemplate">
+<section id="importSection">
+  <h2>Import Schedule — AI <span class="hint" id="importHint"></span></h2>
+  <div class="grid" style="grid-template-columns: 1.6fr 1.6fr 0.9fr auto; align-items: end;">
+    <div>
+      <label>Claude API key (stored only in this browser)</label>
+      <input id="apiKey" type="password" placeholder="sk-ant-..." onchange="saveApiKey()">
+    </div>
+    <div>
+      <label>Schedule file (PDF, JPG, PNG)</label>
+      <input id="schedFile" type="file" accept=".pdf,image/png,image/jpeg,image/webp,image/gif">
+    </div>
+    <div>
+      <label>PDF pages (e.g. 7-16, 22)</label>
+      <input id="pdfPages" placeholder="all">
+    </div>
+    <div><button id="importBtn" onclick="importSchedule()">Import</button></div>
+  </div>
+  <p class="footer-note" id="importStatus">PDFs are rendered page-by-page at high resolution in your browser before being sent, so full plan sets read accurately. Photos/crops of schedules work great too. Get a key at console.anthropic.com; a full plan set costs well under a dollar.</p>
+  <div id="importFlags"></div>
+</section>
+</template>
+
+</main>
+
+<script>
+"use strict";
+
+const CATS = ["Base", "Crown", "Chair Rail", "Shoe", "Door Casing", "Window Casing", "Other"];
+const uid = () => Math.random().toString(36).slice(2, 9);
+
+const DEFAULT_STATE = () => ({
+  project: { name: "", customer: "", date: new Date().toISOString().slice(0, 10) },
+  profiles: [
+    { id: uid(), name: '5-1/4" MDF Base', cat: "Base", stock: 16, waste: 10 },
+    { id: uid(), name: '3-5/8" Crown', cat: "Crown", stock: 16, waste: 15 },
+    { id: uid(), name: '2-1/4" Colonial Casing', cat: "Door Casing", stock: 7, waste: 5 },
+    { id: uid(), name: '2-1/4" Colonial Casing (win)', cat: "Window Casing", stock: 14, waste: 10 },
+    { id: uid(), name: '3/4" Shoe Mould', cat: "Shoe", stock: 16, waste: 10 },
+  ],
+  rooms: [],
+  windows: [],
+  doors: [],
+  cabinetry: [],
+  siding: [],
+  cabBrand: "",
+  cabPriceGroup: "",
+});
+
+let state = load();
+
+function load() {
+  try {
+    const raw = localStorage.getItem("takeoff-v1");
+    if (raw) {
+      const s = JSON.parse(raw);
+      s.windows = s.windows || [];
+      s.doors = s.doors || s.extras || [];   // migrate old "extras" bucket into doors
+      delete s.extras;
+      s.cabinetry = s.cabinetry || [];
+      s.siding = s.siding || [];
+      s.cabBrand = s.cabBrand || "";
+      s.cabPriceGroup = s.cabPriceGroup || "";
+      return s;
+    }
+  } catch (e) {}
+  return DEFAULT_STATE();
+}
+function persist() { localStorage.setItem("takeoff-v1", JSON.stringify(state)); }
+
+function newProject() {
+  if (!confirm("Start a new project? Current takeoff will be cleared.")) return;
+  state = DEFAULT_STATE();
+  persist(); renderAll();
+  location.hash = "";
+}
+
+/* ---------- routing ---------- */
+
+const VIEWS = ["home", "windows", "doors", "cabinetry", "siding", "trim"];
+const VIEW_LABELS = { windows: "Windows", doors: "Doors", cabinetry: "Cabinetry", siding: "Siding", trim: "Trim & Millwork" };
+
+function route() {
+  let v = location.hash.replace("#", "");
+  if (!VIEWS.includes(v)) v = "home";
+  document.body.dataset.view = v;
+  for (const el of document.querySelectorAll(".view")) el.classList.toggle("active", el.id === "view-" + v);
+  document.getElementById("navCrumb").innerHTML =
+    v === "home" ? "" : `<a onclick="location.hash=''">Home</a> &rsaquo; ${VIEW_LABELS[v]}`;
+  const slot = document.getElementById("import-slot-" + v);
+  const imp = document.getElementById("importSection");
+  if (slot && imp) { slot.appendChild(imp); setImportHint(v); }
+  renderCards();
+  window.scrollTo(0, 0);
+}
+
+function renderCards() {
+  const set = (id, n, word) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = `${n} ${word}${n === 1 ? "" : "s"}`;
+  };
+  set("count-windows", state.windows.length, "window");
+  set("count-doors", state.doors.length, "item");
+  set("count-cabinetry", state.cabinetry.length, "item");
+  set("count-siding", state.siding.length, "item");
+  set("count-trim", state.rooms.length, "room");
+}
+
+/* ---------- trim calculations ---------- */
+
+function roomPerimeter(r) {
+  if (r.perimOverride > 0) return r.perimOverride;
+  return 2 * ((+r.length || 0) + (+r.width || 0));
+}
+
+function roomLF(r, cat) {
+  const P = roomPerimeter(r);
+  const doorW = (+r.doorCount || 0) * (+r.doorWidth || 0);
+  const doorH = +r.doorHeight || 6.67;
+  switch (cat) {
+    case "Base":
+    case "Shoe":
+    case "Chair Rail":
+      return Math.max(0, P - doorW);
+    case "Crown":
+      return P;
+    case "Door Casing": {
+      const sides = r.caseBothSides ? 2 : 1;
+      const perSide = 2 * (doorH + 0.25) + ((+r.doorWidth || 0) + 0.5);
+      return (+r.doorCount || 0) * sides * perSide;
+    }
+    case "Window Casing": {
+      const per = 2 * ((+r.winWidth || 0) + (+r.winHeight || 0)) + 1;
+      return (+r.winCount || 0) * per;
+    }
+    default:
+      return 0;
+  }
+}
+
+function summaryLines() {
+  const byProfile = new Map();
+  for (const r of state.rooms) {
+    for (const cat of CATS) {
+      const pid = r.trim ? r.trim[cat] : null;
+      if (!pid) continue;
+      const lf = roomLF(r, cat);
+      if (lf <= 0) continue;
+      if (!byProfile.has(pid)) byProfile.set(pid, { lf: 0, rooms: [] });
+      const entry = byProfile.get(pid);
+      entry.lf += lf;
+      entry.rooms.push(r.name || "Room");
+    }
+  }
+  const lines = [];
+  for (const [pid, agg] of byProfile) {
+    const p = state.profiles.find(x => x.id === pid);
+    if (!p) continue;
+    const orderLF = agg.lf * (1 + (+p.waste || 0) / 100);
+    const stock = +p.stock || 16;
+    lines.push({
+      name: p.name, cat: p.cat, netLF: agg.lf, waste: +p.waste || 0,
+      orderLF, stock, pieces: Math.ceil(orderLF / stock),
+      rooms: [...new Set(agg.rooms)].join(", "),
+    });
+  }
+  lines.sort((a, b) => CATS.indexOf(a.cat) - CATS.indexOf(b.cat));
+  return lines;
+}
+
+const fmt = n => (Math.round(n * 10) / 10).toLocaleString();
+
+/* ---------- profiles UI ---------- */
+
+function addProfile() {
+  state.profiles.push({ id: uid(), name: "", cat: "Base", stock: 16, waste: 10 });
+  persist(); renderProfiles(); renderRooms(); renderSummary();
+}
+function delProfile(id) {
+  state.profiles = state.profiles.filter(p => p.id !== id);
+  for (const r of state.rooms) for (const c of CATS) if (r.trim && r.trim[c] === id) r.trim[c] = "";
+  persist(); renderProfiles(); renderRooms(); renderSummary();
+}
+function updProfile(id, key, val) {
+  const p = state.profiles.find(x => x.id === id);
+  if (!p) return;
+  p[key] = (key === "stock" || key === "waste") ? +val : val;
+  persist(); renderRooms(); renderSummary();
+}
+
+function renderProfiles() {
+  const tb = document.getElementById("profileRows");
+  tb.innerHTML = state.profiles.map(p => `
+    <tr>
+      <td><input value="${esc(p.name)}" placeholder='e.g. 5-1/4" MDF Base' onchange="updProfile('${p.id}','name',this.value)"></td>
+      <td><select onchange="updProfile('${p.id}','cat',this.value)">${CATS.map(c => `<option ${c === p.cat ? "selected" : ""}>${c}</option>`).join("")}</select></td>
+      <td><input type="number" value="${p.stock}" min="1" step="1" onchange="updProfile('${p.id}','stock',this.value)"></td>
+      <td><input type="number" value="${p.waste}" min="0" step="1" onchange="updProfile('${p.id}','waste',this.value)"></td>
+      <td><button class="ghost" title="Remove" onclick="delProfile('${p.id}')">✕</button></td>
+    </tr>`).join("");
+}
+
+/* ---------- rooms UI ---------- */
+
+function addRoom() {
+  state.rooms.push({
+    id: uid(), name: "", length: 0, width: 0, height: 8, perimOverride: 0,
+    doorCount: 0, doorWidth: 2.5, doorHeight: 6.67, caseBothSides: true,
+    winCount: 0, winWidth: 3, winHeight: 4,
+    trim: {},
+  });
+  persist(); renderRooms(); renderSummary(); renderCards();
+}
+function delRoom(id) {
+  state.rooms = state.rooms.filter(r => r.id !== id);
+  persist(); renderRooms(); renderSummary(); renderCards();
+}
+function updRoom(id, key, val, isNum) {
+  const r = state.rooms.find(x => x.id === id);
+  if (!r) return;
+  r[key] = isNum ? +val : val;
+  persist(); updateRoomComputed(id); renderSummary();
+}
+function updRoomBool(id, key, checked) {
+  const r = state.rooms.find(x => x.id === id);
+  if (!r) return;
+  r[key] = checked;
+  persist(); updateRoomComputed(id); renderSummary();
+}
+function updRoomTrim(id, cat, pid) {
+  const r = state.rooms.find(x => x.id === id);
+  if (!r) return;
+  r.trim = r.trim || {};
+  r.trim[cat] = pid;
+  persist(); updateRoomComputed(id); renderSummary();
+}
+
+/* update the calculated numbers in a room card without rebuilding its
+   inputs, so keyboard focus survives while entering data */
+function updateRoomComputed(id) {
+  const r = state.rooms.find(x => x.id === id);
+  if (!r) return;
+  const pill = document.getElementById("perim-" + id);
+  if (pill) pill.textContent = fmt(roomPerimeter(r)) + " LF";
+  for (const cat of CATS) {
+    const cell = document.getElementById("lf-" + id + "-" + cat.replace(/\s/g, ""));
+    if (!cell) continue;
+    const lf = roomLF(r, cat);
+    const sel = r.trim ? r.trim[cat] : "";
+    cell.innerHTML = sel ? fmt(lf) + " LF"
+      : `<span style="color:var(--muted);font-weight:400">${fmt(lf)} LF</span>`;
+  }
+}
+
+function profileOptions(cat, selected) {
+  const opts = state.profiles.filter(p => p.cat === cat);
+  return `<option value="">— none —</option>` +
+    opts.map(p => `<option value="${p.id}" ${p.id === selected ? "selected" : ""}>${esc(p.name)}</option>`).join("");
+}
+
+function renderRooms() {
+  const el = document.getElementById("roomList");
+  if (!state.rooms.length) {
+    el.innerHTML = `<p class="empty">No rooms yet — click “+ Add Room” to start the takeoff.</p>`;
+    return;
+  }
+  el.innerHTML = state.rooms.map(r => {
+    const P = roomPerimeter(r);
+    const trimRows = CATS.filter(c => c !== "Other").map(cat => {
+      const lf = roomLF(r, cat);
+      const sel = r.trim ? (r.trim[cat] || "") : "";
+      return `<tr>
+        <td style="width:130px">${cat}</td>
+        <td><select onchange="updRoomTrim('${r.id}','${cat}',this.value)">${profileOptions(cat, sel)}</select></td>
+        <td class="num lf" style="width:110px" id="lf-${r.id}-${cat.replace(/\s/g, "")}">${sel ? fmt(lf) + " LF" : `<span style="color:var(--muted);font-weight:400">${fmt(lf)} LF</span>`}</td>
+      </tr>`;
+    }).join("");
+    return `
+    <div class="room-card">
+      <div class="room-head">
+        <div><label>Room name</label><input value="${esc(r.name)}" placeholder="Living Room" onchange="updRoom('${r.id}','name',this.value)"></div>
+        <div><label>Length (ft)</label><input type="number" value="${r.length || ""}" min="0" step="0.5" onchange="updRoom('${r.id}','length',this.value,1)"></div>
+        <div><label>Width (ft)</label><input type="number" value="${r.width || ""}" min="0" step="0.5" onchange="updRoom('${r.id}','width',this.value,1)"></div>
+        <div><label>Perim. override</label><input type="number" value="${r.perimOverride || ""}" placeholder="auto" min="0" step="0.5" onchange="updRoom('${r.id}','perimOverride',this.value,1)"></div>
+        <div><label>Perimeter</label><div class="pill" style="margin-top:5px" id="perim-${r.id}">${fmt(P)} LF</div></div>
+        <div><button class="ghost" title="Remove room" onclick="delRoom('${r.id}')">✕</button></div>
+      </div>
+      <div class="room-openings">
+        <div><label># Doors</label><input type="number" value="${r.doorCount || ""}" min="0" step="1" onchange="updRoom('${r.id}','doorCount',this.value,1)"></div>
+        <div><label>Door width (ft)</label><input type="number" value="${r.doorWidth}" min="0" step="0.25" onchange="updRoom('${r.id}','doorWidth',this.value,1)"></div>
+        <div><label>Door height (ft)</label><input type="number" value="${r.doorHeight}" min="0" step="0.01" onchange="updRoom('${r.id}','doorHeight',this.value,1)"></div>
+        <div><label>Case both sides</label><input type="checkbox" ${r.caseBothSides ? "checked" : ""} style="margin-top:8px" onchange="updRoomBool('${r.id}','caseBothSides',this.checked)"></div>
+        <div><label># Windows</label><input type="number" value="${r.winCount || ""}" min="0" step="1" onchange="updRoom('${r.id}','winCount',this.value,1)"></div>
+        <div><label>Window W×H (ft)</label>
+          <div style="display:flex;gap:4px">
+            <input type="number" value="${r.winWidth}" min="0" step="0.25" onchange="updRoom('${r.id}','winWidth',this.value,1)">
+            <input type="number" value="${r.winHeight}" min="0" step="0.25" onchange="updRoom('${r.id}','winHeight',this.value,1)">
+          </div>
+        </div>
+        <div></div>
+      </div>
+      <div class="trim-rows"><table><tbody>${trimRows}</tbody></table></div>
+    </div>`;
+  }).join("");
+}
+
+/* ---------- windows UI ---------- */
+
+const WIN_FIELDS = ["mark", "operation", "width", "height", "headHeight", "sillHeight", "level", "comments"];
+
+function addWindow() {
+  state.windows.push({ id: uid(), mark: "", operation: "", width: "", height: "", headHeight: "", sillHeight: "", level: "", comments: "" });
+  persist(); renderWindows(); renderSummary(); renderCards();
+}
+function delWindow(id) {
+  state.windows = state.windows.filter(w => w.id !== id);
+  persist(); renderWindows(); renderSummary(); renderCards();
+}
+function updWindow(id, key, val) {
+  const w = state.windows.find(x => x.id === id);
+  if (!w) return;
+  w[key] = val;
+  persist(); renderSummary();
+}
+function renderWindows() {
+  const tb = document.getElementById("windowRows");
+  if (!state.windows.length) {
+    tb.innerHTML = `<tr><td colspan="9" class="empty">No windows yet — import a window schedule above or add rows by hand.</td></tr>`;
+  } else {
+    tb.innerHTML = state.windows.map(w => `
+      <tr>
+        ${WIN_FIELDS.map(key =>
+          `<td><input value="${esc(w[key])}" onchange="updWindow('${w.id}','${key}',this.value)"></td>`
+        ).join("")}
+        <td><button class="ghost" title="Remove" onclick="delWindow('${w.id}')">✕</button></td>
+      </tr>`).join("");
+  }
+  renderWindowGroups();
+}
+
+/* identical units (operation + size + comments) rolled up for ordering */
+function windowGroups() {
+  const map = new Map();
+  for (const w of state.windows) {
+    if (!(w.operation || w.width || w.height || w.mark)) continue;
+    const key = [w.operation, w.width, w.height, w.comments]
+      .map(s => String(s || "").trim().toUpperCase().replace(/\s+/g, " ")).join(" | ");
+    if (!map.has(key)) map.set(key, { operation: w.operation, width: w.width, height: w.height, comments: w.comments, qty: 0, marks: [], locs: [] });
+    const g = map.get(key);
+    g.qty++;
+    if (w.mark) g.marks.push(w.mark);
+    if (w.level && !g.locs.includes(w.level)) g.locs.push(w.level);
+  }
+  return [...map.values()];
+}
+
+function windowGroupsTable(groups) {
+  return `<table>
+    <thead><tr><th class="num">Qty</th><th>Operation</th><th>Width</th><th>Height</th><th>Comments</th><th>Marks / Locations</th></tr></thead>
+    <tbody>${groups.map(g => `<tr>
+      <td class="num"><strong>${g.qty}</strong></td><td>${esc(g.operation)}</td><td>${esc(g.width)}</td><td>${esc(g.height)}</td>
+      <td>${esc(g.comments)}</td><td style="color:var(--muted);font-size:12px">${esc([...new Set(g.marks)].join(", "))}${g.marks.length && g.locs.length ? "<br>" : ""}${esc(g.locs.join(", "))}</td>
+    </tr>`).join("")}</tbody>
+  </table>`;
+}
+
+function copyWindowList() {
+  const groups = windowGroups();
+  if (!groups.length) return;
+  const tsv = ["Qty\tOperation\tWidth\tHeight\tComments\tMarks\tLocations"]
+    .concat(groups.map(g => [g.qty, g.operation, g.width, g.height, g.comments, [...new Set(g.marks)].join(", "), g.locs.join(", ")]
+      .map(v => String(v ?? "").replace(/\t/g, " ")).join("\t")))
+    .join("\r\n");
+  navigator.clipboard.writeText(tsv).then(
+    () => { document.getElementById("copyListBtn").textContent = "Copied ✓"; setTimeout(() => document.getElementById("copyListBtn").textContent = "Copy list for quoting entry", 2000); },
+    () => alert("Could not access the clipboard — select the table and copy manually.")
+  );
+}
+
+function renderWindowGroups() {
+  const el = document.getElementById("windowGroupsBody");
+  const groups = windowGroups();
+  el.innerHTML = groups.length
+    ? windowGroupsTable(groups)
+    : `<p class="empty">The order list builds itself as windows are added.</p>`;
+}
+
+/* ---------- generic item buckets (doors / cabinetry / siding) ---------- */
+
+const BUCKETS = {
+  doors: { tbody: "rows-doors", label: "doors & hardware" },
+  cabinetry: { tbody: "rows-cabinetry", label: "cabinetry & casework" },
+  siding: { tbody: "rows-siding", label: "siding & exterior" },
+};
+
+function addBucketItem(bucket) {
+  state[bucket].push({ id: uid(), sku: "", item: "", qty: 1, unit: "ea", note: "" });
+  persist(); renderBucket(bucket); renderSummary(); renderCards();
+}
+function delBucketItem(bucket, id) {
+  state[bucket] = state[bucket].filter(x => x.id !== id);
+  persist(); renderBucket(bucket); renderSummary(); renderCards();
+}
+function updBucketItem(bucket, id, key, val) {
+  const x = state[bucket].find(e => e.id === id);
+  if (!x) return;
+  if (key === "qty") x.qty = +val;
+  else if (key === "price") { if (val === "") delete x.price; else x.price = +val; }
+  else x[key] = val;
+  persist();
+  if (bucket === "cabinetry") refreshCabRow(id);
+  renderSummary();
+}
+function renderBucket(bucket) {
+  if (bucket === "cabinetry") return renderCabinetry();
+  const tb = document.getElementById(BUCKETS[bucket].tbody);
+  if (!state[bucket].length) {
+    tb.innerHTML = `<tr><td colspan="5" class="empty">Nothing yet — import a schedule above or add items by hand.</td></tr>`;
+    return;
+  }
+  tb.innerHTML = state[bucket].map(x => `
+    <tr>
+      <td><input value="${esc(x.item)}" onchange="updBucketItem('${bucket}','${x.id}','item',this.value)"></td>
+      <td><input type="number" value="${x.qty}" min="0" step="1" onchange="updBucketItem('${bucket}','${x.id}','qty',this.value)"></td>
+      <td><input value="${esc(x.unit)}" onchange="updBucketItem('${bucket}','${x.id}','unit',this.value)"></td>
+      <td><input value="${esc(x.note)}" onchange="updBucketItem('${bucket}','${x.id}','note',this.value)"></td>
+      <td><button class="ghost" onclick="delBucketItem('${bucket}','${x.id}')">✕</button></td>
+    </tr>`).join("");
+}
+
+/* cabinetry rows carry SKU + pricing; unit price shows the book price as a
+   placeholder and any typed value becomes a per-row override (clear to revert) */
+function renderCabinetry() {
+  const tb = document.getElementById("rows-cabinetry");
+  if (!state.cabinetry.length) {
+    tb.innerHTML = `<tr><td colspan="7" class="empty">Nothing yet — import a cabinetry schedule above or add items by hand.</td></tr>`;
+  } else {
+    tb.innerHTML = state.cabinetry.map(x => {
+      const book = cabBookPrice(x.sku);
+      const unit = cabUnitPrice(x);
+      const ext = unit != null ? unit * (+x.qty || 0) : null;
+      return `
+      <tr>
+        <td><input value="${esc(x.sku || "")}" onchange="updBucketItem('cabinetry','${x.id}','sku',this.value)"></td>
+        <td><input value="${esc(x.item)}" onchange="updBucketItem('cabinetry','${x.id}','item',this.value)"></td>
+        <td><input type="number" value="${x.qty}" min="0" step="1" onchange="updBucketItem('cabinetry','${x.id}','qty',this.value)"></td>
+        <td><input type="number" step="0.01" min="0" value="${x.price ?? ""}" placeholder="${book != null ? book.toFixed(2) : ""}" onchange="updBucketItem('cabinetry','${x.id}','price',this.value)"></td>
+        <td class="num" id="cabext-${x.id}">${money(ext)}</td>
+        <td><input value="${esc(x.note)}" onchange="updBucketItem('cabinetry','${x.id}','note',this.value)"></td>
+        <td><button class="ghost" onclick="delBucketItem('cabinetry','${x.id}')">✕</button></td>
+      </tr>`;
+    }).join("");
+  }
+  renderCabTotal();
+}
+function refreshCabRow(id) {
+  const x = state.cabinetry.find(e => e.id === id);
+  const cell = document.getElementById("cabext-" + id);
+  if (x && cell) {
+    const unit = cabUnitPrice(x);
+    cell.textContent = money(unit != null ? unit * (+x.qty || 0) : null);
+  }
+  renderCabTotal();
+}
+function cabTotals() {
+  let total = 0, priced = 0, unpriced = 0;
+  for (const x of state.cabinetry.filter(e => e.item || e.sku)) {
+    const unit = cabUnitPrice(x);
+    if (unit != null) { total += unit * (+x.qty || 0); priced++; } else unpriced++;
+  }
+  return { total, priced, unpriced };
+}
+function renderCabTotal() {
+  const el = document.getElementById("cabTotal");
+  const t = cabTotals();
+  if (!t.priced) { el.textContent = ""; return; }
+  el.textContent = `Total ${money(t.total)}` + (t.unpriced ? ` (+${t.unpriced} unpriced)` : "");
+}
+
+/* ---------- cabinetry brands & price books ----------
+   Price books are company assets, not job data: stored under their own
+   localStorage key so "New Project" never touches them. */
+
+let priceBooks = loadPriceBooks();
+
+function loadPriceBooks() {
+  try {
+    const raw = localStorage.getItem("takeoff-pricebooks");
+    if (raw) return JSON.parse(raw);
+  } catch (e) {}
+  return { "Crystal Cabinetry": [], "Wellborn": [] };
+}
+function persistPriceBooks() { localStorage.setItem("takeoff-pricebooks", JSON.stringify(priceBooks)); }
+
+function setCabBrand(name) { state.cabBrand = name; persist(); renderCabBrandUI(); renderBucket("cabinetry"); renderSummary(); }
+function setCabGroup(g) { state.cabPriceGroup = g; persist(); renderBucket("cabinetry"); renderSummary(); }
+function addCabBrand() {
+  const name = (prompt("Brand name (e.g. Crystal Cabinetry):") || "").trim();
+  if (!name) return;
+  if (!priceBooks[name]) { priceBooks[name] = []; persistPriceBooks(); }
+  state.cabBrand = name;
+  persist(); renderCabBrandUI(); renderBucket("cabinetry"); renderSummary();
+}
+
+function renderCabBrandUI() {
+  const sel = document.getElementById("cabBrandSel");
+  const brands = Object.keys(priceBooks);
+  sel.innerHTML = `<option value="">— choose brand —</option>` +
+    brands.map(b => `<option ${b === state.cabBrand ? "selected" : ""}>${esc(b)}</option>`).join("");
+  document.getElementById("cabGroup").value = state.cabPriceGroup || "";
+  const info = document.getElementById("cabBookInfo");
+  if (!state.cabBrand) info.textContent = "Pick a brand to price this job.";
+  else {
+    const n = (priceBooks[state.cabBrand] || []).length;
+    info.textContent = n ? `${state.cabBrand}: ${n.toLocaleString()} prices loaded.` : `${state.cabBrand}: no price book loaded yet — import pages below.`;
+  }
+}
+
+/* book lookup: prefer the job's price group, fall back to a group-less or sole entry */
+function cabBookPrice(sku) {
+  if (!sku || !state.cabBrand) return null;
+  const list = priceBooks[state.cabBrand] || [];
+  const s = String(sku).trim().toUpperCase();
+  const matches = list.filter(e => String(e.sku).trim().toUpperCase() === s);
+  if (!matches.length) return null;
+  const g = (state.cabPriceGroup || "").trim().toUpperCase();
+  const exact = matches.find(e => String(e.group || "").trim().toUpperCase() === g);
+  const pick = exact || matches.find(e => !e.group) || matches[0];
+  return typeof pick.price === "number" ? pick.price : null;
+}
+function cabUnitPrice(x) {
+  return (x.price !== undefined && x.price !== null && x.price !== "") ? +x.price : cabBookPrice(x.sku);
+}
+const money = n => n == null ? "" : "$" + n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+const PRICEBOOK_SCHEMA = {
+  type: "object",
+  properties: {
+    entries: {
+      type: "array",
+      description: "Every SKU/item code on the pricing sheet with its list price",
+      items: {
+        type: "object",
+        properties: {
+          sku: { type: "string", description: "Catalog code exactly as printed, e.g. B18, W3030, SB36B-FH" },
+          description: { type: "string", description: "Brief item description; empty string if the sheet has none" },
+          group: { type: "string", description: "If the sheet prices each SKU in multiple columns (finish/species/door-style groups), the column's name; empty string for single-price sheets" },
+          price: { type: "number", description: "List price as a number, no $ sign" },
+        },
+        required: ["sku", "description", "group", "price"],
+        additionalProperties: false,
+      },
+    },
+  },
+  required: ["entries"],
+  additionalProperties: false,
+};
+
+async function importPriceBook() {
+  const status = document.getElementById("priceBookStatus");
+  const btn = document.getElementById("priceBookBtn");
+  const keyEl = document.getElementById("apiKey");
+  const key = keyEl ? keyEl.value.trim() : (localStorage.getItem("takeoff-apikey") || "");
+  const file = document.getElementById("priceBookFile").files[0];
+  if (!state.cabBrand) { status.textContent = "Pick (or add) the brand first — prices are saved per brand."; return; }
+  if (!key) { status.textContent = "Enter your Claude API key in the Import Schedule section below first."; return; }
+  if (!file) { status.textContent = "Choose a PDF or photo of the pricing sheet first."; return; }
+
+  btn.disabled = true;
+  status.textContent = `Reading ${file.name}…`;
+  try {
+    const b64 = await fileToBase64(file);
+    const isPdf = file.type === "application/pdf" || /\.pdf$/i.test(file.name);
+    const docBlock = isPdf
+      ? { type: "document", source: { type: "base64", media_type: "application/pdf", data: b64 } }
+      : { type: "image", source: { type: "base64", media_type: file.type || "image/jpeg", data: b64 } };
+
+    status.textContent = `Extracting ${state.cabBrand} prices with Claude… this can take a minute.`;
+    const prompt = `This is a page (or pages) from the "${state.cabBrand}" cabinetry price book / pricing sheet.
+Extract EVERY item code with its list price into entries. Copy SKUs exactly as printed. If the sheet prices each SKU across multiple columns for different finish, species, or door-style groups, create one entry per column and put that column's exact heading in group; for single-price sheets use an empty group. Prices are numbers without $ signs. Do not invent items that are not on the sheet.`;
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-api-key": key,
+        "anthropic-version": "2023-06-01",
+        "anthropic-dangerous-direct-browser-access": "true",
+      },
+      body: JSON.stringify({
+        model: "claude-opus-4-8",
+        max_tokens: 32000,
+        output_config: { format: { type: "json_schema", schema: PRICEBOOK_SCHEMA } },
+        messages: [{ role: "user", content: [docBlock, { type: "text", text: prompt }] }],
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error && data.error.message ? data.error.message : `API error ${res.status}`);
+    if (data.stop_reason === "refusal") throw new Error("the model declined to process this document");
+    if (data.stop_reason === "max_tokens") status.textContent = "Note: page was very dense — some rows may be missing; re-import in smaller chunks.";
+
+    const text = (data.content || []).filter(b => b.type === "text").map(b => b.text).join("");
+    const entries = (JSON.parse(text).entries || []).filter(e => e.sku && typeof e.price === "number");
+    if (!entries.length) { status.textContent = "No SKU prices found — is that a pricing sheet?"; return; }
+
+    // merge: a re-imported sku+group replaces its old price
+    const book = priceBooks[state.cabBrand];
+    let updated = 0;
+    for (const e of entries) {
+      const k = (String(e.sku).trim().toUpperCase()) + "||" + (String(e.group || "").trim().toUpperCase());
+      const idx = book.findIndex(x => (String(x.sku).trim().toUpperCase()) + "||" + (String(x.group || "").trim().toUpperCase()) === k);
+      const clean = { sku: e.sku.trim(), description: e.description || "", group: (e.group || "").trim(), price: e.price };
+      if (idx >= 0) { book[idx] = clean; updated++; } else book.push(clean);
+    }
+    persistPriceBooks();
+    renderCabBrandUI(); renderBucket("cabinetry"); renderSummary();
+    status.textContent = `Added ${entries.length - updated} and updated ${updated} prices — ${state.cabBrand} book now has ${book.length.toLocaleString()} entries.`;
+  } catch (e) {
+    status.textContent = "Import failed: " + e.message;
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+/* ---------- client-side PDF rendering (high-res plan reading) ----------
+   The API downscales whole PDF pages to ~2576px, which makes small callouts
+   and schedule tables on 36" architectural sheets unreadable. Instead we
+   render each page in the browser and send overlapping high-res quadrants
+   plus the page's exact text layer (authoritative for codes & dimensions). */
+
+let pdfjsPromise = null;
+function getPdfjs() {
+  if (!pdfjsPromise) {
+    pdfjsPromise = (async () => {
+      const base = "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/";
+      const lib = await import(base + "pdf.min.mjs");
+      // workers must be same-origin, so pull the worker script and load it from a blob
+      try {
+        const src = await (await fetch(base + "pdf.worker.min.mjs")).text();
+        lib.GlobalWorkerOptions.workerSrc = URL.createObjectURL(new Blob([src], { type: "text/javascript" }));
+      } catch (e) {
+        lib.GlobalWorkerOptions.workerSrc = base + "pdf.worker.min.mjs"; // pdf.js falls back to main-thread mode
+      }
+      return lib;
+    })();
+  }
+  return pdfjsPromise;
+}
+
+/* "7-16, 22" → [7,8,...,16,22]; empty/["all"] → every page */
+function parsePageSpec(spec, nPages) {
+  const s = (spec || "").trim().toLowerCase();
+  if (!s || s === "all") return Array.from({ length: nPages }, (_, i) => i + 1);
+  const out = new Set();
+  for (const part of s.split(/[,;\s]+/).filter(Boolean)) {
+    const m = part.match(/^(\d+)(?:-(\d+))?$/);
+    if (!m) throw new Error(`bad page range "${part}" — use e.g. 7-16, 22`);
+    const a = +m[1], b = m[2] ? +m[2] : +m[1];
+    for (let p = Math.min(a, b); p <= Math.max(a, b); p++) if (p >= 1 && p <= nPages) out.add(p);
+  }
+  if (!out.size) throw new Error("page range matches no pages in this PDF");
+  return [...out].sort((x, y) => x - y);
+}
+
+async function pdfToContentBlocks(file, onProgress, pageSpec) {
+  const lib = await getPdfjs();
+  const doc = await lib.getDocument({ data: await file.arrayBuffer() }).promise;
+  const nPages = doc.numPages;
+  const pageList = parsePageSpec(pageSpec, nPages);
+  if (pageList.length > 16 && !confirm(`Rendering and importing ${pageList.length} pages can take several minutes and may exceed request limits — for big plan sets, import the window pages in ranges (e.g. 7-16, then 17-24; results add together). Continue with all ${pageList.length}?`)) {
+    throw new Error("import cancelled");
+  }
+  const OVERLAP = 0.05;        // tiles overlap so callouts on seams aren't cut
+  // the API caps every image at 2000px in many-image requests, so detail comes
+  // from a finer grid, not bigger tiles: 3x3 up to 7 pages (63 tiles max), 2x2 beyond
+  const GRID = pageList.length <= 7 ? 3 : 2;
+  const TILE_LONG = 2000;
+  const blocks = [];
+  let bytes = 0;
+  let fullText = "";
+  for (let k = 0; k < pageList.length; k++) {
+    const i = pageList[k];
+    onProgress(`Rendering page ${i} (${k + 1} of ${pageList.length}) at high resolution…`);
+    const page = await doc.getPage(i);
+    const tc = await page.getTextContent();
+    const text = tc.items.map(t => t.str).join(" ").replace(/\s+/g, " ").trim();
+    fullText += "\n" + text;
+    blocks.push({ type: "text", text: `--- PAGE ${i} of ${nPages} in the document — exact text layer (authoritative for marks, call numbers, and dimensions):\n${text.slice(0, 12000) || "(no machine text on this page — read the images)"}` });
+
+    const vp1 = page.getViewport({ scale: 1 });
+    const scale = (TILE_LONG * GRID * (1 - OVERLAP)) / Math.max(vp1.width, vp1.height);
+    const vp = page.getViewport({ scale });
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.ceil(vp.width); canvas.height = Math.ceil(vp.height);
+    const ctx = canvas.getContext("2d");
+    ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+    await page.render({ canvasContext: ctx, viewport: vp }).promise;
+
+    const w = Math.ceil(canvas.width / GRID * (1 + OVERLAP)), h = Math.ceil(canvas.height / GRID * (1 + OVERLAP));
+    for (let ry = 0; ry < GRID; ry++) {
+      for (let rx = 0; rx < GRID; rx++) {
+        const sx = GRID === 1 ? 0 : Math.round(rx * (canvas.width - w) / (GRID - 1));
+        const sy = GRID === 1 ? 0 : Math.round(ry * (canvas.height - h) / (GRID - 1));
+        const tile = document.createElement("canvas");
+        tile.width = w; tile.height = h;
+        tile.getContext("2d").drawImage(canvas, sx, sy, w, h, 0, 0, w, h);
+        const b64 = tile.toDataURL("image/jpeg", 0.8).split(",")[1];
+        bytes += b64.length;
+        blocks.push({ type: "text", text: `Page ${i}, tile row ${ry + 1}/${GRID}, column ${rx + 1}/${GRID} (tiles overlap their neighbors):` });
+        blocks.push({ type: "image", source: { type: "base64", media_type: "image/jpeg", data: b64 } });
+      }
+    }
+  }
+  if (bytes > 26_000_000) throw new Error("rendered plan set is too large for one request — import fewer pages at a time (ranges add together)");
+  return { blocks, fullText };
+}
+
+/* deterministic post-import audit: window call numbers that appear in the
+   drawings' text layer but are missing from the extraction can't hide —
+   this check is pure pattern matching, immune to model run-to-run variance */
+function coverageCheck(fullText, wins) {
+  if (!fullText) return [];
+  const counts = {};
+  for (const m of fullText.matchAll(/\b(TW\d{4,6}|CTW\d{2,6}|AR\d{2,4}|AN?\d{2}|C[XNW]?\d{2}|GLDR|GLIDER)\b/gi)) {
+    const t = m[1].toUpperCase();
+    counts[t] = (counts[t] || 0) + 1;
+  }
+  const hay = w => ((w.mark || "") + " " + (w.operation || "") + " " + (w.comments || "")).toUpperCase();
+  const warns = [];
+  for (const [tok, n] of Object.entries(counts)) {
+    const isGlider = tok === "GLDR" || tok === "GLIDER";
+    const got = wins.filter(w => isGlider ? /GLDR|GLIDER/.test(hay(w)) : hay(w).includes(tok)).length;
+    if (got === 0) warns.push(`AUTO-CHECK: "${tok}" appears ${n}× in the drawings text but ZERO matching windows were extracted — almost certainly missed units; verify on the plans.`);
+    else if (got < n && n > 1) warns.push(`AUTO-CHECK: "${tok}" appears ${n}× in the drawings text but only ${got} matching window(s) extracted — note that (2)/(3) multipliers can make this normal; verify the count.`);
+  }
+  return warns;
+}
+
+const WINDOW_TAKEOFF_PROMPT = `You are doing a WINDOW TAKEOFF from a residential plan set for a window supplier. Pages are provided as overlapping image quadrants plus each page's exact text layer — trust the text layer for exact marks, call numbers, and dimensions; use the images to locate windows, count instances, group mulled assemblies, and read anything the text layer scrambles.
+
+Extract EVERY window in the project into "windows", ONE ENTRY PER INSTALLED UNIT (if the same size appears in 3 locations, output 3 entries, each with its location):
+- mark: the tag or manufacturer call number as drawn (e.g. TW2052, C13, or a schedule mark). Empty string if none.
+- operation: DH, CSMNT, AWN, GLIDER, FIXED, etc. Infer from standard call numbers (TW = tilt-wash double hung, C/CN/CX/CW = casement, A/AN/AR/AWN = awning) when not spelled out. Short codes like "C13" or "A21" ARE windows (casement/awning call numbers) — do not skip them even when they sit in a string of door codes.
+- width / height: the nominal unit size — from the schedule, a dimension string, or decoded from the call number (e.g. TW2052 is 2'-0" x 5'-2"). Keep the plan's format.
+- level: floor and room, e.g. "1st Floor - M. Bedroom".
+- comments: TEMP., EGRESS, and assembly/mulling notes (twin/triple units, transoms, "assembly with ...").
+
+If the set includes a WINDOW SCHEDULE, extract it AND verify it against the floor plans and elevations. If there is no schedule, take off directly from the floor plans and elevations.
+
+COUNT REPEATED UNITS METHODICALLY — this is where takeoffs fail. When BOTH floor plans and elevations are provided, count units on the FLOOR PLANS (walk each floor, one entry per window symbol/tag, room by room) and take sizes, products, and trim specs from the elevations and notes; reconcile the two counts and flag any mismatch. BEWARE TWO SYSTEMATIC UNDERCOUNTS: (1) a single wide opening symbol on a floor plan is often a MULLED TWIN/TRIPLE — check the elevation for that facade; if it shows a paired/mulled assembly (e.g. 84" wide = two 42" DH sashes), output one entry PER SASH; (2) long rooms on a windowed facade often have 2-3 window symbols — count every symbol in the room, not one per room. Commercial elevations often show long rows of identical windows. Count the openings one by one, bay by bay, using grid lines, dimension strings, and structural bays as counting aids; tiles overlap, so de-duplicate units that appear in two adjacent tiles by their position on the facade. Output one entry per counted unit. Never write "typical" and move on — a row of 12 identical windows is 12 entries. If you genuinely cannot resolve a count, give your best count AND flag it. In a mulled/twin/triple assembly, each sash unit is its own entry (note the assembly in comments) — quoting systems count units, not assemblies.
+
+"flags": list everything a human should verify before ordering — schedule-vs-drawing discrepancies, callouts you could not read or found ambiguous, windows visible on elevations with no callout, assemblies you had to interpret, spec notes (e.g. "ALL WINDOWS TO BE ANDERSEN 400 SERIES", header height notes), and revision notes mentioning window changes.
+
+Do NOT include doors of any kind (entry, French, sliding patio, garage) — windows only. CAREFUL: GLIDER/SLIDER WINDOWS ("GLDR", "glider", horizontal sliding windows) ARE windows and MUST be included — a sliding DOOR is full-height and walked through; a glider window is not. Do not invent windows that are not on the plans.`;
+
+/* ---------- AI schedule import ---------- */
+
+const SCHEDULE_SCHEMA = {
+  type: "object",
+  properties: {
+    windows: {
+      type: "array",
+      description: "Every row of any WINDOW SCHEDULE in the document, one entry per mark/row",
+      items: {
+        type: "object",
+        properties: {
+          mark: { type: "string", description: "Mark/tag exactly as shown, e.g. '001', '130T'" },
+          operation: { type: "string", description: "Operation/type exactly as shown: D/H, CSMNT, FIXED, AWN, SLDR, BIFOLD, etc." },
+          width: { type: "string", description: "Width exactly as written, e.g. 2' - 8\"" },
+          height: { type: "string", description: "Height exactly as written" },
+          head_height: { type: "string", description: "Head height as written; empty string if not given" },
+          sill_height: { type: "string", description: "Sill height as written; empty string if not given" },
+          level: { type: "string", description: "Floor/level as written; empty string if not given" },
+          comments: { type: "string", description: "Comments/remarks column: TEMP., EGRESS, ARCHTOP, etc.; empty string if none" },
+        },
+        required: ["mark", "operation", "width", "height", "head_height", "sill_height", "level", "comments"],
+        additionalProperties: false,
+      },
+    },
+    items: {
+      type: "array",
+      description: "Non-window line items (doors, cabinets, siding, trim, hardware)",
+      items: {
+        type: "object",
+        properties: {
+          sku: { type: "string", description: "Catalog/SKU code if the item has one (e.g. B18, W3030, SB36); empty string otherwise" },
+          item: { type: "string", description: "Full item description, e.g. '3-0 x 6-8 2-panel hollow core door, RH' or 'base cabinet, 18 in.'" },
+          qty: { type: "number", description: "Quantity" },
+          unit: { type: "string", description: "Unit of measure: ea, LF, SF, sq, pr, box, etc." },
+          note: { type: "string", description: "Mark/tag, location, hardware, or other detail from the schedule; empty string if none" },
+        },
+        required: ["sku", "item", "qty", "unit", "note"],
+        additionalProperties: false,
+      },
+    },
+    flags: {
+      type: "array",
+      description: "Things a human should verify before ordering: discrepancies, unreadable/ambiguous callouts, interpreted assemblies, spec/revision notes. Empty if none.",
+      items: { type: "string" },
+    },
+  },
+  required: ["windows", "items", "flags"],
+  additionalProperties: false,
+};
+
+const IMPORT_PROMPT_BASE = `This document contains construction schedules or plans — it may be a window schedule, a door schedule, a cabinetry/casework plan, a siding/exterior takeoff, or a full plan set containing any of these (often in a table on an elevations or sections sheet).
+
+WINDOW SCHEDULES: extract EVERY row into "windows", one entry per mark, even when many rows are identical. Copy dimensions exactly as written (e.g. 2' - 8") — do not convert units. Keep the mark, operation, head/sill heights, level, and comments verbatim. If the document has MULTIPLE window schedules (e.g. "WINDOW SCHEDULE - HOUSE" and "WINDOW SCHEDULE - GARAGE"), extract all of them; when a schedule has no Level column, put the schedule's own name (e.g. GARAGE) in the level field so the buildings stay distinguishable.
+
+EVERYTHING ELSE (doors, cabinets, countertops, siding, trim, hardware): extract into "items". Combine size, style, and configuration into one description; put the mark and location in the note. Identical lines may be combined with summed qty, noting all marks. Unit is "ea" unless the schedule says otherwise (LF, SF, or squares for length/area material).
+
+Leave an array empty if the document has no rows of that kind. Do not invent rows that are not in the document.`;
+
+const IMPORT_FOCUS = {
+  windows: "The user is doing a WINDOW takeoff — windows are the priority; still capture other items you see.",
+  doors: "The user is doing a DOOR takeoff — extract door schedules and hardware into items (windows still go in windows if present).",
+  cabinetry: "The user is doing a CABINETRY takeoff — extract cabinets (by SKU/size like B18, W3030, SB36), countertops, panels, and fillers into items.",
+  siding: "The user is doing a SIDING/EXTERIOR takeoff — extract siding, trim boards, soffit, and wrap quantities (SF, squares, LF) into items.",
+};
+
+const IMPORT_HINTS = {
+  windows: "upload a window schedule (photo, crop, or PDF)",
+  doors: "upload a door schedule (photo, crop, or PDF)",
+  cabinetry: "upload a cabinetry plan or schedule (photo, crop, or PDF)",
+  siding: "upload a siding/exterior takeoff or elevations (photo, crop, or PDF)",
+};
+
+let importTarget = "windows";
+
+function setImportHint(view) {
+  importTarget = view;
+  const el = document.getElementById("importHint");
+  if (el) el.textContent = IMPORT_HINTS[view] || "";
+}
+
+function renderImportFlags(parsed, extra) {
+  const flags = ((parsed && parsed.flags) || []).filter(f => f && f.trim()).concat(extra || []);
+  document.getElementById("importFlags").innerHTML = flags.length
+    ? `<div class="flags"><strong>⚠ Verify before ordering:</strong><ul>${flags.map(f => `<li>${esc(f)}</li>`).join("")}</ul></div>`
+    : "";
+}
+
+function saveApiKey() {
+  // never let a stray empty change-event wipe a stored key; typing a new key replaces it
+  const v = document.getElementById("apiKey").value.trim();
+  if (v) localStorage.setItem("takeoff-apikey", v);
+}
+
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(String(r.result).split(",", 2)[1]);
+    r.onerror = () => reject(new Error("could not read the file"));
+    r.readAsDataURL(file);
+  });
+}
+
+async function importSchedule() {
+  const status = document.getElementById("importStatus");
+  const btn = document.getElementById("importBtn");
+  const key = document.getElementById("apiKey").value.trim();
+  const file = document.getElementById("schedFile").files[0];
+  if (!key) { status.textContent = "Enter your Claude API key first — create one at console.anthropic.com → API Keys."; return; }
+  if (!file) { status.textContent = "Choose a PDF or photo of the schedule first."; return; }
+  saveApiKey();
+
+  const bucket = BUCKETS[importTarget] ? importTarget : "doors";
+
+  btn.disabled = true;
+  document.getElementById("importFlags").innerHTML = "";
+  status.textContent = `Reading ${file.name}…`;
+  try {
+    const isPdf = file.type === "application/pdf" || /\.pdf$/i.test(file.name);
+    let contentBlocks, importText = "";
+    if (isPdf) {
+      const rendered = await pdfToContentBlocks(file, m => { status.textContent = m; }, document.getElementById("pdfPages").value);
+      contentBlocks = rendered.blocks;
+      importText = rendered.fullText;
+    } else {
+      const b64 = await fileToBase64(file);
+      contentBlocks = [{ type: "image", source: { type: "base64", media_type: file.type || "image/jpeg", data: b64 } }];
+    }
+
+    status.textContent = "Extracting with Claude… a full plan set can take a few minutes.";
+    const prompt = importTarget === "windows"
+      ? WINDOW_TAKEOFF_PROMPT
+      : IMPORT_PROMPT_BASE + "\n\n" + (IMPORT_FOCUS[importTarget] || "");
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-api-key": key,
+        "anthropic-version": "2023-06-01",
+        "anthropic-dangerous-direct-browser-access": "true",
+      },
+      body: JSON.stringify({
+        model: "claude-opus-4-8",
+        max_tokens: 24000,
+        output_config: { format: { type: "json_schema", schema: SCHEDULE_SCHEMA } },
+        messages: [{ role: "user", content: [...contentBlocks, { type: "text", text: prompt }] }],
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error && data.error.message ? data.error.message : `API error ${res.status}`);
+    if (data.stop_reason === "refusal") throw new Error("the model declined to process this document");
+
+    const text = (data.content || []).filter(b => b.type === "text").map(b => b.text).join("");
+    const parsed = JSON.parse(text);
+    const wins = (parsed.windows || []).filter(w => w.mark || w.operation || w.width);
+    const items = (parsed.items || []).filter(it => it.item);
+    const covWarns = importTarget === "windows" ? coverageCheck(importText, wins) : [];
+    if (!wins.length && !items.length) {
+      status.textContent = importTarget === "windows"
+        ? "No windows extracted from these pages. On many plan sets the sizes and counts live on the ELEVATION sheets — try those pages next. The model's notes (below) usually say what it saw."
+        : "No schedule rows found — is that file actually a schedule?";
+      renderImportFlags(parsed, covWarns);
+      return;
+    }
+
+    for (const w of wins) {
+      state.windows.push({
+        id: uid(), mark: w.mark || "", operation: w.operation || "", width: w.width || "", height: w.height || "",
+        headHeight: w.head_height || "", sillHeight: w.sill_height || "", level: w.level || "", comments: w.comments || "",
+      });
+    }
+    for (const it of items) {
+      state[bucket].push({ id: uid(), sku: it.sku || "", item: it.item, qty: +it.qty || 1, unit: it.unit || "ea", note: it.note || "" });
+    }
+    persist(); renderWindows(); renderBucket(bucket); renderSummary(); renderCards();
+    const parts = [];
+    if (wins.length) parts.push(`${wins.length} window${wins.length === 1 ? "" : "s"}`);
+    if (items.length) parts.push(`${items.length} ${BUCKETS[bucket].label} item${items.length === 1 ? "" : "s"}`);
+    status.textContent = `Imported ${parts.join(" and ")} — review below.`;
+    renderImportFlags(parsed, covWarns);
+  } catch (e) {
+    status.textContent = "Import failed: " + e.message;
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+/* ---------- project + summary ---------- */
+
+function saveProject() {
+  state.project.name = document.getElementById("p_name").value;
+  state.project.customer = document.getElementById("p_customer").value;
+  state.project.date = document.getElementById("p_date").value;
+  persist(); renderSummary();
+}
+
+function itemsTable(list) {
+  return `<table>
+    <thead><tr><th>Item</th><th class="num">Qty</th><th>Unit</th><th>Note</th></tr></thead>
+    <tbody>${list.map(x => `<tr><td>${esc(x.item)}</td><td class="num"><strong>${x.qty}</strong></td><td>${esc(x.unit)}</td><td style="color:var(--muted)">${esc(x.note)}</td></tr>`).join("")}</tbody>
+  </table>`;
+}
+
+function renderSummary() {
+  const lines = summaryLines();
+  const meta = document.getElementById("printMeta");
+  const p = state.project;
+  meta.textContent = [p.name, p.customer, p.date].filter(Boolean).join("  •  ");
+
+  const el = document.getElementById("summaryBody");
+  const winGroups = windowGroups();
+  const doors = state.doors.filter(x => x.item);
+  const cab = state.cabinetry.filter(x => x.item);
+  const sid = state.siding.filter(x => x.item);
+
+  let html = "";
+  if (!lines.length && !winGroups.length && !doors.length && !cab.length && !sid.length) {
+    el.innerHTML = `<p class="empty">Pick a tool above and import a schedule (or enter items) to build the order sheet.</p>`;
+    return;
+  }
+  if (winGroups.length) {
+    const totalWins = winGroups.reduce((s, g) => s + g.qty, 0);
+    html += `<h2 style="margin-top:4px">Windows <span class="pill">${totalWins} units</span></h2>` + windowGroupsTable(winGroups);
+  }
+  if (doors.length) html += `<h2 style="margin-top:18px">Doors &amp; Hardware</h2>` + itemsTable(doors);
+  if (cab.length) {
+    const t = cabTotals();
+    const brand = state.cabBrand ? ` <span class="pill">${esc(state.cabBrand)}${state.cabPriceGroup ? " — " + esc(state.cabPriceGroup) : ""}</span>` : "";
+    html += `<h2 style="margin-top:18px">Cabinetry &amp; Casework${brand}</h2>
+    <table>
+      <thead><tr><th>SKU</th><th>Description</th><th class="num">Qty</th><th class="num">Unit</th><th class="num">Ext</th><th>Note</th></tr></thead>
+      <tbody>
+        ${cab.map(x => {
+          const unit = cabUnitPrice(x);
+          return `<tr><td><strong>${esc(x.sku || "")}</strong></td><td>${esc(x.item)}</td><td class="num">${x.qty}</td>
+            <td class="num">${money(unit)}</td><td class="num">${money(unit != null ? unit * (+x.qty || 0) : null)}</td>
+            <td style="color:var(--muted)">${esc(x.note)}</td></tr>`;
+        }).join("")}
+        ${t.priced ? `<tr class="summary-total"><td colspan="4">Cabinetry total${t.unpriced ? ` (${t.unpriced} item${t.unpriced === 1 ? "" : "s"} unpriced)` : ""}</td><td class="num">${money(t.total)}</td><td></td></tr>` : ""}
+      </tbody>
+    </table>`;
+  }
+  if (sid.length) html += `<h2 style="margin-top:18px">Siding &amp; Exterior</h2>` + itemsTable(sid);
+  if (lines.length) {
+    const totalNet = lines.reduce((s, l) => s + l.netLF, 0);
+    const totalOrder = lines.reduce((s, l) => s + l.orderLF, 0);
+    html += `<h2 style="margin-top:18px">Trim</h2>
+    <table>
+      <thead><tr><th>Profile</th><th>Category</th><th class="num">Net LF</th><th class="num">Waste</th><th class="num">Order LF</th><th class="num">Stock</th><th class="num">Pieces</th><th>Rooms</th></tr></thead>
+      <tbody>
+        ${lines.map(l => `<tr>
+          <td><strong>${esc(l.name)}</strong></td><td>${l.cat}</td>
+          <td class="num">${fmt(l.netLF)}</td><td class="num">${l.waste}%</td>
+          <td class="num lf">${fmt(l.orderLF)}</td><td class="num">${l.stock}′</td>
+          <td class="num"><strong>${l.pieces}</strong></td>
+          <td style="color:var(--muted);font-size:12px">${esc(l.rooms)}</td>
+        </tr>`).join("")}
+        <tr class="summary-total"><td colspan="2">Total</td><td class="num">${fmt(totalNet)}</td><td></td><td class="num">${fmt(totalOrder)}</td><td colspan="3"></td></tr>
+      </tbody>
+    </table>`;
+  }
+  el.innerHTML = html;
+}
+
+function exportCSV() {
+  const rows = [];
+  const winGroups = windowGroups();
+  if (winGroups.length) {
+    rows.push(["WINDOWS"]);
+    rows.push(["Qty", "Operation", "Width", "Height", "Comments", "Marks", "Locations"]);
+    for (const g of winGroups) rows.push([g.qty, g.operation, g.width, g.height, g.comments, [...new Set(g.marks)].join(", "), g.locs.join(", ")]);
+    rows.push([]);
+  }
+  for (const [bucket, label] of [["doors", "DOORS & HARDWARE"], ["cabinetry", "CABINETRY & CASEWORK"], ["siding", "SIDING & EXTERIOR"]]) {
+    const list = state[bucket].filter(x => x.item || x.sku);
+    if (!list.length) continue;
+    rows.push([label + (bucket === "cabinetry" && state.cabBrand ? ` — ${state.cabBrand}${state.cabPriceGroup ? " / " + state.cabPriceGroup : ""}` : "")]);
+    if (bucket === "cabinetry") {
+      rows.push(["SKU", "Description", "Qty", "Unit Price", "Ext Price", "Note"]);
+      for (const x of list) {
+        const unit = cabUnitPrice(x);
+        rows.push([x.sku || "", x.item, x.qty, unit != null ? unit.toFixed(2) : "", unit != null ? (unit * (+x.qty || 0)).toFixed(2) : "", x.note]);
+      }
+      const t = cabTotals();
+      if (t.priced) rows.push(["", "", "", "Total", t.total.toFixed(2), t.unpriced ? `${t.unpriced} unpriced` : ""]);
+    } else {
+      rows.push(["Item", "Qty", "Unit", "Note"]);
+      for (const x of list) rows.push([x.item, x.qty, x.unit, x.note]);
+    }
+    rows.push([]);
+  }
+  const lines = summaryLines();
+  if (lines.length) {
+    rows.push(["TRIM"]);
+    rows.push(["Profile", "Category", "Net LF", "Waste %", "Order LF", "Stock Length (ft)", "Pieces", "Rooms"]);
+    for (const l of lines) rows.push([l.name, l.cat, fmt(l.netLF), l.waste, fmt(l.orderLF), l.stock, l.pieces, l.rooms]);
+  }
+  const csv = rows.map(r => r.map(c => `"${String(c ?? "").replace(/"/g, '""')}"`).join(",")).join("\r\n");
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
+  a.download = (state.project.name || "takeoff").replace(/[^\w\- ]/g, "") + "-order-sheet.csv";
+  a.click();
+}
+
+function esc(s) {
+  return String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
+}
+
+/* ---------- collapsible sections ---------- */
+
+function saveCollapsed() {
+  const ids = [...document.querySelectorAll("section.collapsed")].map(s => s.id);
+  localStorage.setItem("takeoff-collapsed", JSON.stringify(ids));
+}
+function expandSection(id) {
+  const sec = document.getElementById(id);
+  if (sec) sec.classList.remove("collapsed");
+  saveCollapsed();
+}
+function initCollapsible() {
+  let saved = null;
+  try { saved = JSON.parse(localStorage.getItem("takeoff-collapsed")); } catch (e) {}
+  if (!Array.isArray(saved)) saved = [];
+  for (const id of saved) {
+    const sec = document.getElementById(id);
+    if (sec) sec.classList.add("collapsed");
+  }
+  for (const h2 of document.querySelectorAll("main section > h2")) {
+    h2.addEventListener("click", (e) => {
+      if (e.target.closest("input, select, button")) return;
+      h2.parentElement.classList.toggle("collapsed");
+      saveCollapsed();
+    });
+  }
+}
+
+/* ---------- init ---------- */
+
+function renderAll() {
+  document.getElementById("p_name").value = state.project.name || "";
+  document.getElementById("p_customer").value = state.project.customer || "";
+  document.getElementById("p_date").value = state.project.date || "";
+  renderProfiles(); renderRooms(); renderWindows(); renderCabBrandUI();
+  for (const b of Object.keys(BUCKETS)) renderBucket(b);
+  renderSummary(); renderCards();
+}
+
+// materialize the shared import section from its template (it gets moved into the active tool view)
+document.getElementById("view-windows").querySelector("#import-slot-windows")
+  .appendChild(document.getElementById("importTemplate").content.cloneNode(true));
+document.getElementById("apiKey").value = localStorage.getItem("takeoff-apikey") || "";
+
+renderAll();
+initCollapsible();
+window.addEventListener("hashchange", route);
+route();
+</script>
+</body>
+</html>
