@@ -170,6 +170,11 @@
     <div class="desc">Siding &amp; exterior material takeoffs</div>
     <div class="count" id="count-siding">0 items</div>
   </div>
+  <div class="tool-card" onclick="location.hash='framing'">
+    <h3>Framing &amp; Lumber</h3>
+    <div class="desc">Structural schedule (beams, LVLs, headers) &amp; budgetary draft from plans</div>
+    <div class="count" id="count-framing">0 items</div>
+  </div>
   <div class="tool-card alt" onclick="location.hash='trim'">
     <h3>Trim &amp; Millwork</h3>
     <div class="desc">Room-by-room base, crown &amp; casing footages</div>
@@ -264,6 +269,21 @@
   </section>
 </div>
 
+<!-- ============ FRAMING & LUMBER ============ -->
+<div class="view" id="view-framing">
+  <div id="import-slot-framing"></div>
+  <section id="framingSection">
+    <h2>Framing &amp; Lumber <span class="hint">structural schedule and geometry draft — stud/plate/sheet counts stay with your takeoff service; this is the first pass and the special-order catcher</span></h2>
+    <div class="overflow">
+    <table>
+      <thead><tr><th>Item</th><th style="width:90px">Qty</th><th style="width:110px">Unit</th><th>Note</th><th></th></tr></thead>
+      <tbody id="rows-framing"></tbody>
+    </table>
+    </div>
+    <div class="toolbar"><button class="secondary" onclick="addBucketItem('framing')">+ Add Item</button></div>
+  </section>
+</div>
+
 <!-- ============ TRIM & MILLWORK ============ -->
 <div class="view" id="view-trim">
   <section id="profilesSection">
@@ -348,6 +368,7 @@ const DEFAULT_STATE = () => ({
   doors: [],
   cabinetry: [],
   siding: [],
+  framing: [],
   cabBrand: "",
   cabPriceGroup: "",
 });
@@ -364,6 +385,7 @@ function load() {
       delete s.extras;
       s.cabinetry = s.cabinetry || [];
       s.siding = s.siding || [];
+      s.framing = s.framing || [];
       s.cabBrand = s.cabBrand || "";
       s.cabPriceGroup = s.cabPriceGroup || "";
       return s;
@@ -382,8 +404,8 @@ function newProject() {
 
 /* ---------- routing ---------- */
 
-const VIEWS = ["home", "windows", "doors", "cabinetry", "siding", "trim"];
-const VIEW_LABELS = { windows: "Windows", doors: "Doors", cabinetry: "Cabinetry", siding: "Siding", trim: "Trim & Millwork" };
+const VIEWS = ["home", "windows", "doors", "cabinetry", "siding", "framing", "trim"];
+const VIEW_LABELS = { windows: "Windows", doors: "Doors", cabinetry: "Cabinetry", siding: "Siding", framing: "Framing & Lumber", trim: "Trim & Millwork" };
 
 function route() {
   let v = location.hash.replace("#", "");
@@ -408,6 +430,7 @@ function renderCards() {
   set("count-doors", state.doors.length, "item");
   set("count-cabinetry", state.cabinetry.length, "item");
   set("count-siding", state.siding.length, "item");
+  set("count-framing", state.framing.length, "item");
   set("count-trim", state.rooms.length, "room");
 }
 
@@ -696,6 +719,7 @@ const BUCKETS = {
   doors: { tbody: "rows-doors", label: "doors & hardware" },
   cabinetry: { tbody: "rows-cabinetry", label: "cabinetry & casework" },
   siding: { tbody: "rows-siding", label: "siding & exterior" },
+  framing: { tbody: "rows-framing", label: "framing & lumber" },
 };
 
 function addBucketItem(bucket) {
@@ -1057,6 +1081,20 @@ COUNT REPEATED UNITS METHODICALLY — this is where takeoffs fail. When BOTH flo
 
 Do NOT include doors of any kind (entry, French, sliding patio, garage) — windows only. CAREFUL: GLIDER/SLIDER WINDOWS ("GLDR", "glider", horizontal sliding windows) ARE windows and MUST be included — a sliding DOOR is full-height and walked through; a glider window is not. Do not invent windows that are not on the plans.`;
 
+const FRAMING_TAKEOFF_PROMPT = `You are doing a FRAMING & LUMBER first-pass takeoff from residential plans for a lumber supplier. This is a BUDGETARY DRAFT and special-order catcher — NOT an orderable bill of materials. Precise stud/plate/sheet counts come from estimating software; your job is everything that is actually PRINTED on the plans.
+
+Extract into "items", one entry per line:
+
+1. STRUCTURAL SCHEDULE — highest priority; missing one of these hurts most. Every beam, girder, header, post, and engineered-lumber callout with size, length, and count exactly as drawn: e.g. "6x10x16 beam", "(2) 1-3/4x11-7/8 LVL x 20 ft", "10x10 cypress post x 10 ft", steel/flitch, ridge beams, garage door headers. qty and unit (EA/LF) as drawn; put the location (e.g. "over kitchen opening") in note.
+
+2. GEOMETRY SUMMARY — the numbers estimating math runs on, as items with SF/LF/EA units: heated SF per level, porch/garage/bonus SF, ceiling heights and precut-stud notes, roof pitch(es), overall footprint dimensions, exterior wall linear footage per level if the dimension strings allow it.
+
+3. SPECS — as items with an allowance quantity when the plans give one, otherwise qty 1 "spec": wall/roof sheathing type, subfloor spec, housewrap/WRB, siding types with estimated SF if stated, insulation R-values per assembly, joist/truss/rafter species-size-spacing notes.
+
+Do NOT invent computed quantities (stud counts, plate counts, sheet counts, nail quantities) — report the driving geometry instead. Do not include windows, exterior doors, or interior trim (other tools cover those).
+
+"flags": every assumption you made, dimensions you could not read, engineered items that need supplier design (trusses, I-joist layouts), references to sheets not provided, and a reminder of which quantities require the estimating service.`;
+
 /* ---------- AI schedule import ---------- */
 
 const SCHEDULE_SCHEMA = {
@@ -1120,6 +1158,7 @@ const IMPORT_FOCUS = {
   doors: "The user is doing a DOOR takeoff — extract door schedules and hardware into items (windows still go in windows if present).",
   cabinetry: "The user is doing a CABINETRY takeoff — extract cabinets (by SKU/size like B18, W3030, SB36), countertops, panels, and fillers into items.",
   siding: "The user is doing a SIDING/EXTERIOR takeoff — extract siding, trim boards, soffit, and wrap quantities (SF, squares, LF) into items.",
+  framing: "", // framing uses its own dedicated prompt
 };
 
 const IMPORT_HINTS = {
@@ -1127,6 +1166,7 @@ const IMPORT_HINTS = {
   doors: "upload a door schedule (photo, crop, or PDF)",
   cabinetry: "upload a cabinetry plan or schedule (photo, crop, or PDF)",
   siding: "upload a siding/exterior takeoff or elevations (photo, crop, or PDF)",
+  framing: "upload the plan set — floor plans, framing plans, sections (photo, crop, or PDF)",
 };
 
 let importTarget = "windows";
@@ -1188,7 +1228,9 @@ async function importSchedule() {
     status.textContent = "Extracting with Claude… a full plan set can take a few minutes.";
     const prompt = importTarget === "windows"
       ? WINDOW_TAKEOFF_PROMPT
-      : IMPORT_PROMPT_BASE + "\n\n" + (IMPORT_FOCUS[importTarget] || "");
+      : importTarget === "framing"
+        ? FRAMING_TAKEOFF_PROMPT
+        : IMPORT_PROMPT_BASE + "\n\n" + (IMPORT_FOCUS[importTarget] || "");
     const res = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
@@ -1270,9 +1312,10 @@ function renderSummary() {
   const doors = state.doors.filter(x => x.item);
   const cab = state.cabinetry.filter(x => x.item);
   const sid = state.siding.filter(x => x.item);
+  const frm = state.framing.filter(x => x.item);
 
   let html = "";
-  if (!lines.length && !winGroups.length && !doors.length && !cab.length && !sid.length) {
+  if (!lines.length && !winGroups.length && !doors.length && !cab.length && !sid.length && !frm.length) {
     el.innerHTML = `<p class="empty">Pick a tool above and import a schedule (or enter items) to build the order sheet.</p>`;
     return;
   }
@@ -1299,6 +1342,7 @@ function renderSummary() {
     </table>`;
   }
   if (sid.length) html += `<h2 style="margin-top:18px">Siding &amp; Exterior</h2>` + itemsTable(sid);
+  if (frm.length) html += `<h2 style="margin-top:18px">Framing &amp; Lumber <span class="pill">budgetary draft — not an orderable BOM</span></h2>` + itemsTable(frm);
   if (lines.length) {
     const totalNet = lines.reduce((s, l) => s + l.netLF, 0);
     const totalOrder = lines.reduce((s, l) => s + l.orderLF, 0);
@@ -1329,7 +1373,7 @@ function exportCSV() {
     for (const g of winGroups) rows.push([g.qty, g.operation, g.width, g.height, g.comments, [...new Set(g.marks)].join(", "), g.locs.join(", ")]);
     rows.push([]);
   }
-  for (const [bucket, label] of [["doors", "DOORS & HARDWARE"], ["cabinetry", "CABINETRY & CASEWORK"], ["siding", "SIDING & EXTERIOR"]]) {
+  for (const [bucket, label] of [["doors", "DOORS & HARDWARE"], ["cabinetry", "CABINETRY & CASEWORK"], ["siding", "SIDING & EXTERIOR"], ["framing", "FRAMING & LUMBER (BUDGETARY DRAFT)"]]) {
     const list = state[bucket].filter(x => x.item || x.sku);
     if (!list.length) continue;
     rows.push([label + (bucket === "cabinetry" && state.cabBrand ? ` — ${state.cabBrand}${state.cabPriceGroup ? " / " + state.cabPriceGroup : ""}` : "")]);
