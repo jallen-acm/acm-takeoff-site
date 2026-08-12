@@ -271,6 +271,14 @@
 
 <!-- ============ FRAMING & LUMBER ============ -->
 <div class="view" id="view-framing">
+  <section id="paidTakeoffSection">
+    <h2>Import Paid Takeoff — BOM CSV <span class="hint">digitize the estimating service's deliverable — exact, instant, no AI cost</span></h2>
+    <div class="grid" style="grid-template-columns: 2fr auto; align-items: end;">
+      <div><label>BOM CSV from the takeoff service (e.g. LBM_JobBOM_CSV_*.csv)</label><input id="bomFile" type="file" accept=".csv,text/csv"></div>
+      <div><button onclick="importBomCsv()">Import BOM</button></div>
+    </div>
+    <p class="footer-note" id="bomStatus">Line items land in the table below grouped by the BOM's sections; length breakdowns (/10 ×2, /12 ×8) fold into the item notes. Rows append — start a New Project before re-importing the same BOM.</p>
+  </section>
   <div id="import-slot-framing"></div>
   <section id="framingSection">
     <h2>Framing &amp; Lumber <span class="hint">structural schedule and geometry draft — stud/plate/sheet counts stay with your takeoff service; this is the first pass and the special-order catcher</span></h2>
@@ -1080,6 +1088,68 @@ COUNT REPEATED UNITS METHODICALLY — this is where takeoffs fail. When BOTH flo
 "flags": list everything a human should verify before ordering — schedule-vs-drawing discrepancies, callouts you could not read or found ambiguous, windows visible on elevations with no callout, assemblies you had to interpret, spec notes (e.g. "ALL WINDOWS TO BE ANDERSEN 400 SERIES", header height notes), and revision notes mentioning window changes.
 
 Do NOT include doors of any kind (entry, French, sliding patio, garage) — windows only. CAREFUL: GLIDER/SLIDER WINDOWS ("GLDR", "glider", horizontal sliding windows) ARE windows and MUST be included — a sliding DOOR is full-height and walked through; a glider window is not. Do not invent windows that are not on the plans.`;
+
+/* ---------- paid takeoff BOM import (deterministic, no AI) ---------- */
+
+function parseCsv(text) {
+  const rows = []; let row = [], field = "", inQ = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (inQ) {
+      if (c === '"') { if (text[i + 1] === '"') { field += '"'; i++; } else inQ = false; }
+      else field += c;
+    } else if (c === '"') inQ = true;
+    else if (c === ",") { row.push(field); field = ""; }
+    else if (c === "\n" || c === "\r") {
+      if (c === "\r" && text[i + 1] === "\n") i++;
+      row.push(field); field = "";
+      if (row.length > 1 || row[0] !== "") rows.push(row);
+      row = [];
+    } else field += c;
+  }
+  if (field !== "" || row.length) { row.push(field); rows.push(row); }
+  return rows;
+}
+
+async function importBomCsv() {
+  const status = document.getElementById("bomStatus");
+  const file = document.getElementById("bomFile").files[0];
+  if (!file) { status.textContent = "Choose the BOM CSV file first."; return; }
+  try {
+    const rows = parseCsv(await file.text());
+    const header = rows[0].map(h => h.trim().toLowerCase());
+    const col = n => header.indexOf(n);
+    const iSection = col("section"), iProduct = col("product"), iDesc = col("description"),
+          iStyle = col("style"), iUnit = col("unit"), iQty = col("quantity"), iTotal = col("quantity total");
+    if (iSection < 0 || iDesc < 0 || iTotal < 0) throw new Error("this doesn't look like a takeoff BOM CSV (need Section, Description, and Quantity Total columns)");
+    let added = 0, breakdowns = 0, last = null;
+    const sections = new Set();
+    for (const r of rows.slice(1)) {
+      const desc = (r[iDesc] || "").trim();
+      if (!desc) continue;
+      if (desc.startsWith("/") && last) {   // length-breakdown sub-row, e.g. "/12 x8"
+        last.note += (last.note.includes("lengths:") ? ", " : " — lengths: ") + desc.replace(/\s*x(\d)/i, " ×$1");
+        breakdowns++;
+        continue;
+      }
+      const it = {
+        id: uid(),
+        sku: (r[iProduct] || "").trim(),
+        item: desc,
+        qty: Math.round((parseFloat(r[iTotal]) || parseFloat(r[iQty]) || 0) * 100) / 100,
+        unit: (r[iUnit] || "EA").trim(),
+        note: (r[iSection] || "").trim() + ((r[iStyle] || "").toUpperCase().includes("SPECIAL") ? " — SPECIAL ORDER" : ""),
+      };
+      state.framing.push(it); last = it; added++;
+      if (r[iSection]) sections.add(r[iSection].trim());
+    }
+    if (!added) throw new Error("no line items found in that CSV");
+    persist(); renderBucket("framing"); renderSummary(); renderCards();
+    status.textContent = `Imported ${added} BOM line items across ${sections.size} sections (${breakdowns} length breakdowns folded into notes).`;
+  } catch (e) {
+    status.textContent = "Import failed: " + e.message;
+  }
+}
 
 const FRAMING_TAKEOFF_PROMPT = `You are doing a FRAMING & LUMBER first-pass takeoff from residential plans for a lumber supplier. This is a BUDGETARY DRAFT and special-order catcher — NOT an orderable bill of materials. Precise stud/plate/sheet counts come from estimating software; your job is everything that is actually PRINTED on the plans.
 
