@@ -172,7 +172,7 @@
   </div>
   <div class="tool-card" onclick="location.hash='framing'">
     <h3>Framing &amp; Lumber</h3>
-    <div class="desc">Digitize the paid takeoff BOM — the lumber package on the same order sheet</div>
+    <div class="desc">Structural schedule (beams, LVLs, headers) &amp; geometry draft from plans</div>
     <div class="count" id="count-framing">0 items</div>
   </div>
   <div class="tool-card alt" onclick="location.hash='trim'">
@@ -271,16 +271,9 @@
 
 <!-- ============ FRAMING & LUMBER ============ -->
 <div class="view" id="view-framing">
-  <section id="paidTakeoffSection">
-    <h2>Import Paid Takeoff — BOM CSV <span class="hint">digitize the estimating service's deliverable — exact, instant, no AI cost</span></h2>
-    <div class="grid" style="grid-template-columns: 2fr auto; align-items: end;">
-      <div><label>BOM CSV from the takeoff service (e.g. LBM_JobBOM_CSV_*.csv)</label><input id="bomFile" type="file" accept=".csv,text/csv"></div>
-      <div><button onclick="importBomCsv()">Import BOM</button></div>
-    </div>
-    <p class="footer-note" id="bomStatus">Line items land in the table below grouped by the BOM's sections; length breakdowns (/10 ×2, /12 ×8) fold into the item notes. Rows append — start a New Project before re-importing the same BOM.</p>
-  </section>
+  <div id="import-slot-framing"></div>
   <section id="framingSection">
-    <h2>Framing &amp; Lumber <span class="hint">the digitized takeoff — edit, add items, and it prints/exports with the rest of the job</span></h2>
+    <h2>Framing &amp; Lumber <span class="hint">structural schedule and geometry draft from the plans — stud/plate/sheet counts stay with your takeoff service</span></h2>
     <div class="overflow">
     <table>
       <thead><tr><th>Item</th><th style="width:90px">Qty</th><th style="width:110px">Unit</th><th>Note</th><th></th></tr></thead>
@@ -1235,6 +1228,7 @@ const IMPORT_HINTS = {
   doors: "upload a door schedule (photo, crop, or PDF)",
   cabinetry: "upload a cabinetry plan or schedule (photo, crop, or PDF)",
   siding: "upload a siding/exterior takeoff or elevations (photo, crop, or PDF)",
+  framing: "upload the plan set — floor plans, framing plans, sections (photo, crop, or PDF)",
 };
 
 let importTarget = "windows";
