@@ -172,7 +172,7 @@
   </div>
   <div class="tool-card" onclick="location.hash='framing'">
     <h3>Framing &amp; Lumber</h3>
-    <div class="desc">Structural schedule (beams, LVLs, headers) &amp; budgetary draft from plans</div>
+    <div class="desc">Digitize the paid takeoff BOM — the lumber package on the same order sheet</div>
     <div class="count" id="count-framing">0 items</div>
   </div>
   <div class="tool-card alt" onclick="location.hash='trim'">
@@ -279,9 +279,8 @@
     </div>
     <p class="footer-note" id="bomStatus">Line items land in the table below grouped by the BOM's sections; length breakdowns (/10 ×2, /12 ×8) fold into the item notes. Rows append — start a New Project before re-importing the same BOM.</p>
   </section>
-  <div id="import-slot-framing"></div>
   <section id="framingSection">
-    <h2>Framing &amp; Lumber <span class="hint">structural schedule and geometry draft — stud/plate/sheet counts stay with your takeoff service; this is the first pass and the special-order catcher</span></h2>
+    <h2>Framing &amp; Lumber <span class="hint">the digitized takeoff — edit, add items, and it prints/exports with the rest of the job</span></h2>
     <div class="overflow">
     <table>
       <thead><tr><th>Item</th><th style="width:90px">Qty</th><th style="width:110px">Unit</th><th>Note</th><th></th></tr></thead>
@@ -1236,7 +1235,6 @@ const IMPORT_HINTS = {
   doors: "upload a door schedule (photo, crop, or PDF)",
   cabinetry: "upload a cabinetry plan or schedule (photo, crop, or PDF)",
   siding: "upload a siding/exterior takeoff or elevations (photo, crop, or PDF)",
-  framing: "upload the plan set — floor plans, framing plans, sections (photo, crop, or PDF)",
 };
 
 let importTarget = "windows";
