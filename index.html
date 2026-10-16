@@ -88,6 +88,13 @@
   button.ghost { background: transparent; border-color: transparent; color: var(--muted); padding: 4px 8px; }
   button.ghost:hover { color: var(--red); }
   button:hover { filter: brightness(1.05); }
+  dialog.ask {
+    margin: auto; border: none; border-radius: 10px; padding: 20px; color: var(--ink);
+    width: min(440px, calc(100vw - 32px)); box-shadow: 0 10px 40px rgba(29,36,82,.35);
+  }
+  dialog.ask::backdrop { background: rgba(29,36,82,.45); }
+  dialog.ask p { margin: 0 0 14px; line-height: 1.45; }
+  dialog.ask .row { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
   table { width: 100%; border-collapse: collapse; font-size: 13px; }
   th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .4px; color: var(--muted); padding: 6px 8px; border-bottom: 2px solid var(--line); white-space: nowrap; }
   td { padding: 5px 8px; border-bottom: 1px solid var(--line); vertical-align: middle; }
@@ -354,6 +361,17 @@
 
 </main>
 
+<dialog id="askDialog" class="ask">
+  <form method="dialog">
+    <p id="askMsg"></p>
+    <input id="askInput" autocomplete="off">
+    <div class="row">
+      <button id="askCancel" class="secondary" value="cancel">Cancel</button>
+      <button id="askOk" value="ok">OK</button>
+    </div>
+  </form>
+</dialog>
+
 <script>
 "use strict";
 
@@ -401,8 +419,30 @@ function load() {
 }
 function persist() { localStorage.setItem("takeoff-v1", JSON.stringify(state)); }
 
-function newProject() {
-  if (!confirm("Start a new project? Current takeoff will be cleared.")) return;
+/* in-page replacement for confirm()/prompt(): some embedded browsers (e.g. the
+   Claude app's browser pane) cancel native dialogs without showing them.
+   Resolves true/false, or the typed text / null when `input` is a placeholder. */
+function askUser({ message, okText = "OK", cancelText = "Cancel", input = null }) {
+  const dlg = document.getElementById("askDialog");
+  const box = document.getElementById("askInput");
+  document.getElementById("askMsg").textContent = message;
+  document.getElementById("askOk").textContent = okText;
+  document.getElementById("askCancel").textContent = cancelText;
+  box.style.display = input === null ? "none" : "";
+  box.value = "";
+  box.placeholder = input || "";
+  box.onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); dlg.close("ok"); } };
+  dlg.returnValue = "";
+  dlg.showModal();
+  if (input !== null) box.focus();
+  return new Promise(resolve => dlg.addEventListener("close", () => {
+    const ok = dlg.returnValue === "ok";
+    resolve(input === null ? ok : (ok ? box.value.trim() : null));
+  }, { once: true }));
+}
+
+async function newProject() {
+  if (!(await askUser({ message: "Start a new project? The current takeoff will be cleared. Saved price books are kept.", okText: "Clear and start new" }))) return;
   state = DEFAULT_STATE();
   persist(); renderAll();
   location.hash = "";
@@ -707,7 +747,7 @@ function copyWindowList() {
     .join("\r\n");
   navigator.clipboard.writeText(tsv).then(
     () => { document.getElementById("copyListBtn").textContent = "Copied ✓"; setTimeout(() => document.getElementById("copyListBtn").textContent = "Copy list for quoting entry", 2000); },
-    () => alert("Could not access the clipboard — select the table and copy manually.")
+    () => { document.getElementById("copyListBtn").textContent = "Couldn't copy — select the table and copy manually"; setTimeout(() => document.getElementById("copyListBtn").textContent = "Copy list for quoting entry", 4000); }
   );
 }
 
@@ -829,8 +869,8 @@ function persistPriceBooks() { localStorage.setItem("takeoff-pricebooks", JSON.s
 
 function setCabBrand(name) { state.cabBrand = name; persist(); renderCabBrandUI(); renderBucket("cabinetry"); renderSummary(); }
 function setCabGroup(g) { state.cabPriceGroup = g; persist(); renderBucket("cabinetry"); renderSummary(); }
-function addCabBrand() {
-  const name = (prompt("Brand name (e.g. Crystal Cabinetry):") || "").trim();
+async function addCabBrand() {
+  const name = (await askUser({ message: "Brand name:", input: "e.g. Crystal Cabinetry", okText: "Add Brand" })) || "";
   if (!name) return;
   if (!priceBooks[name]) { priceBooks[name] = []; persistPriceBooks(); }
   state.cabBrand = name;
@@ -1061,7 +1101,7 @@ async function pdfToContentBlocks(file, onProgress, pageSpec, mode = "plans") {
   const doc = await lib.getDocument({ data: await file.arrayBuffer() }).promise;
   const nPages = doc.numPages;
   const pageList = parsePageSpec(pageSpec, nPages);
-  if (pageList.length > 16 && !confirm(`Rendering and importing ${pageList.length} pages can take several minutes and may exceed request limits — for big files, import in page ranges (e.g. 7-16, then 17-24; results add together). Continue with all ${pageList.length}?`)) {
+  if (pageList.length > 16 && !(await askUser({ message: `Rendering and importing ${pageList.length} pages can take several minutes and may exceed request limits — for big files, import in page ranges (e.g. 7-16, then 17-24; results add together). Continue with all ${pageList.length}?`, okText: `Import all ${pageList.length}` }))) {
     throw new Error("import cancelled");
   }
   const OVERLAP = 0.05;        // tiles overlap so callouts on seams aren't cut
