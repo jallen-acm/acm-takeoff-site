@@ -354,7 +354,8 @@
     </div>
     <div><button id="importBtn" onclick="importSchedule()">Import</button></div>
   </div>
-  <p class="footer-note" id="importStatus">PDFs are rendered page-by-page at high resolution in your browser before being sent, so full plan sets read accurately. Photos/crops of schedules work great too. Get a key at console.anthropic.com. Claude reasons through the drawings before answering, so a plan set takes a few minutes and typically costs $0.50–$1.50; the exact cost and time show here after each import.</p>
+  <p class="footer-note" id="importTip"></p>
+  <p class="footer-note" id="importStatus">PDFs are rendered page-by-page at high resolution in your browser before being sent, so full plan sets read accurately. Photos/crops of schedules work great too. Get a key at console.anthropic.com. Claude reasons through the drawings before answering: a house takes a couple of minutes, a large commercial set up to about 12, and most imports cost $1–2. Elapsed time shows here while it works and the exact cost when it finishes.</p>
   <div id="importFlags"></div>
 </section>
 </template>
@@ -1350,12 +1351,19 @@ const IMPORT_HINTS = {
   framing: "upload the plan set — floor plans, framing plans, sections (photo, crop, or PDF)",
 };
 
+const IMPORT_TIPS = {
+  windows: "Which pages: the overall floor plan for each floor plus the exterior elevations (e.g. 12, 15, 18, 22-24) — skip demolition, enlarged-plan, structural and MEP sheets; up to 7 pages gets the finest detail. Imports add together, so click New Project before re-running the same pages. "
+    + "How far to trust it: on real jobs checked against final quotes, both a house and a 194-window commercial building came out about 97% complete with sizes matching. Before ordering, check counts on long rows of identical windows, which product line each opening gets, and every ⚠ Verify item.",
+};
+
 let importTarget = "windows";
 
 function setImportHint(view) {
   importTarget = view;
   const el = document.getElementById("importHint");
   if (el) el.textContent = IMPORT_HINTS[view] || "";
+  const tip = document.getElementById("importTip");
+  if (tip) { tip.textContent = IMPORT_TIPS[view] || ""; tip.style.display = IMPORT_TIPS[view] ? "" : "none"; }
 }
 
 function renderImportFlags(parsed, extra) {
