@@ -1127,7 +1127,8 @@ async function pdfToContentBlocks(file, onProgress, pageSpec, mode = "plans") {
 function coverageCheck(fullText, wins) {
   if (!fullText) return [];
   const counts = {};
-  for (const m of fullText.matchAll(/\b(TW\d{4,6}|CTW\d{2,6}|AR\d{2,4}|AN?\d{2}|C[XNW]?\d{2}|GLDR|GLIDER)\b/gi)) {
+  // structural notes cite material specs like "ASTM A36" / "ASTM C90", which look like window codes
+  for (const m of fullText.matchAll(/(?<!\bASTM[\s:-]{0,3})\b(TW\d{4,6}|CTW\d{2,6}|AR\d{2,4}|AN?\d{2}|C[XNW]?\d{2}|GLDR|GLIDER)\b/gi)) {
     const t = m[1].toUpperCase();
     counts[t] = (counts[t] || 0) + 1;
   }
